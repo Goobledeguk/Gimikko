@@ -1,1 +1,5 @@
-## Gimikko
+<div align="center">
+
+  ## Gimikko
+
+</div>
