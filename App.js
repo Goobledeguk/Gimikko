@@ -2,9 +2,10 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
+import * as NavigationBar from 'expo-navigation-bar';
 import { useFonts } from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
-import { useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import RootTabs from './navigation/RootTabs.jsx';
 
 SplashScreen.preventAutoHideAsync();
@@ -14,6 +15,18 @@ export default function App() {
     'Poppins-Bold': require('./assets/fonts/Poppins-Bold.ttf'),
     'Poppins-Regular': require('./assets/fonts/Poppins-Regular.ttf'),
   });
+
+  useEffect(() => {
+    async function hideSystemBars() {
+      try {
+        await NavigationBar.setVisibilityAsync("hidden");
+        await NavigationBar.setBehaviorAsync("inset-swipe");
+      } catch (e) {
+        console.log(e);
+      }
+    }
+    hideSystemBars();
+  }, []);
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
@@ -31,7 +44,7 @@ export default function App() {
         <NavigationContainer>
           <RootTabs />
         </NavigationContainer>
-        <StatusBar style="auto" translucent={true} animated={true} />
+        <StatusBar style="auto" hidden={true} translucent={true} animated={true} />
       </View>
     </GestureHandlerRootView>
   );
@@ -39,12 +52,11 @@ export default function App() {
 
 const styles = StyleSheet.create({
   root: {  
-  flex: 1,
-  width: '100%',
-  height: '100%',
+    flex: 1,
+    width: '100%',
+    height: '100%',
   },
   container: {
     flex: 1, 
-    color: '#fff',
   },
 });

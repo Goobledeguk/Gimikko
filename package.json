@@ -8,6 +8,7 @@
     "@react-navigation/native": "^7.4.1",
     "expo": "~57.0.24",
     "expo-font": "~57.0.4",
+    "expo-navigation-bar": "~57.0.2",
     "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
     "expo-vector-icons": "^10.0.1",
