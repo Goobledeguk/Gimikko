@@ -38,8 +38,10 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
+  root: {  
+  flex: 1,
+  width: '100%',
+  height: '100%',
   },
   container: {
     flex: 1, 

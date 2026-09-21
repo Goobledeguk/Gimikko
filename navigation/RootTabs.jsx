@@ -1,9 +1,10 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 import CustomTabBar from './CustomTabBar';
 import { Home } from '../screens/Home';
-import SearchScreen from '../screens/SearchScreen';
+import CalendarScreen from '../screens/CalendarScreen';
+import FavoritesScreen from '../screens/FavoritesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import { Ionicons } from '@expo/vector-icons';
 
 const Tab = createBottomTabNavigator();
 
@@ -12,31 +13,37 @@ export default function RootTabs() {
     <Tab.Navigator
       screenOptions={{ headerShown: false }}
       // Swapping in our own component here is what replaces React
-      // Navigation's default bar with the curved one.
+      // Navigation's default bar with our custom pill bar.
       tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tab.Screen
-          name="Home"
-          component={Home}
-          options={{
-            tabBarLabel: 'Home',
-            tabBarIcon: () => <Ionicons name="home" size={22} color={'#999'} />,
-          }}
+        name="Home"
+        component={Home}
+        options={{
+          // tabBarIcon receives { focused, color, size } from CustomTabBar —
+          // color already flips between active/inactive, so one line handles both states.
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+        }}
       />
       <Tab.Screen
-        name="Search"
-        component={SearchScreen}
+        name="Calendar"
+        component={CalendarScreen}
         options={{
-          tabBarLabel: 'Search',
-          tabBarIcon: () => <Ionicons name="search" size={22} color={'#999'} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="calendar" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Favorites"
+        component={FavoritesScreen}
+        options={{
+          tabBarIcon: ({ color, size }) => <Ionicons name="earth" size={size} color={color} />,
         }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
         options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: () => <Ionicons name="person" size={22} color={'#999'} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="person-circle" size={size} color={color} />,
         }}
       />
     </Tab.Navigator>

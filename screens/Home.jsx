@@ -1,18 +1,60 @@
-import { StyleSheet, Text, View, Image } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, Text, View, Image, ScrollView } from 'react-native';
 import ParallaxCarousel from '../components/Carousel-Parallax.jsx';
 
 export function Home() {
+  
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  const handleScroll = (event) => {
+    const offsetY = event.nativeEvent.contentOffset.y;
+    setIsScrolled(offsetY > 4);
+  };
+
   return (
     <View style={styles.container}>
-      <Image source={require('../assets/gimikko.png')} style={{ height: 50, width: 150, marginTop: 30 }} />
-      <Text style={styles.h1font}>Anong Gimik Mo!</Text>
+      <View style={[styles.header, isScrolled && styles.headerShadow]}>
+        <Image source={require('../assets/gimikko.png')} style={styles.logo} />
+        <Text style={styles.h1font}>Anong Gimik Mo!</Text>
+      </View>
 
-      <ParallaxCarousel
-        images={[
-          require('../assets/splash-icon.png'),
-          require('../assets/splash-icon.png'),
-        ]}
-      />
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16} 
+        nestedScrollEnabled={true}// ~60fps 
+      >
+        <ParallaxCarousel
+          images={[
+            require('../assets/gimikko.png'),
+            require('../assets/gimikko.png'),
+          ]}
+        />
+        <ParallaxCarousel
+          images={[
+            require('../assets/gimikko.png'),
+            require('../assets/gimikko.png'),
+          ]}
+        /><ParallaxCarousel
+          images={[
+            require('../assets/gimikko.png'),
+            require('../assets/gimikko.png'),
+          ]}
+        /><ParallaxCarousel
+          images={[
+            require('../assets/gimikko.png'),
+            require('../assets/gimikko.png'),
+          ]}
+        /><ParallaxCarousel
+          images={[
+            require('../assets/gimikko.png'),
+            require('../assets/gimikko.png'),
+          ]}
+        />
+      
+      </ScrollView>
     </View>
   );
 }
@@ -21,13 +63,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
+  },
+  header: {
     alignItems: 'center',
+    paddingTop: 30,
+    paddingBottom: 12,
+    backgroundColor: '#ffffff',
+    zIndex: 10, // keeps it visually above the ScrollView's content on Android
+  },
+  headerShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4, // Android's shadow system is separate from iOS's shadow* props
+  },
+  logo: {
+    height: 50,
+    width: 150,
   },
   h1font: {
     fontFamily: 'Poppins-Bold',
-    fontSize: 10, // 7 was likely a typo — nearly invisible
+    fontSize: 10,
     textAlign: 'center',
     color: '#05dd00',
     marginTop: -5,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    alignItems: 'center',
+    paddingBottom: 100,
   },
 });
