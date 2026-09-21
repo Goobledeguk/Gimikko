@@ -26,12 +26,19 @@ export function Home() {
         scrollEventThrottle={16} 
         nestedScrollEnabled={true}// ~60fps 
       >
+
+        <Text style={{ fontFamily: 'Poppins-Bold', fontSize: 15, color: '#05dd00', textAlign: 'left', width: '100%', paddingLeft: 20, marginTop: 20, marginBottom: 10 }}>
+          Trending Gimik
+        </Text>
         <ParallaxCarousel
           images={[
             require('../assets/gimikko.png'),
             require('../assets/gimikko.png'),
           ]}
         />
+        <Text style={{ fontFamily: 'Poppins-Bold', fontSize: 15, color: '#05dd00', textAlign: 'left', width: '100%', paddingLeft: 20, marginTop: 20, marginBottom: 10 }}>
+          Recommended Gimik
+        </Text>
         <ParallaxCarousel
           images={[
             require('../assets/gimikko.png'),
