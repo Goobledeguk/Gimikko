@@ -1,12 +1,22 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import CustomTabBar from './CustomTabBar';
+import FadeScreen from './FadeScreen';
 import { Home } from '../screens/Home';
 import CalendarScreen from '../screens/CalendarScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
+
+// Defined OUTSIDE the component (not inline in <Tab.Screen component={...} />)
+// so each one is a stable reference. An inline arrow function would create a
+// brand-new component type on every render, which React Navigation would
+// then remount from scratch — losing scroll position, state, etc.
+const FadeHome = () => <FadeScreen><Home /></FadeScreen>;
+const FadeCalendar = () => <FadeScreen><CalendarScreen /></FadeScreen>;
+const FadeFavorites = () => <FadeScreen><FavoritesScreen /></FadeScreen>;
+const FadeProfile = () => <FadeScreen><ProfileScreen /></FadeScreen>;
 
 export default function RootTabs() {
   return (
@@ -18,7 +28,7 @@ export default function RootTabs() {
     >
       <Tab.Screen
         name="Home"
-        component={Home}
+        component={FadeHome}
         options={{
           // tabBarIcon receives { focused, color, size } from CustomTabBar —
           // color already flips between active/inactive, so one line handles both states.
@@ -27,21 +37,21 @@ export default function RootTabs() {
       />
       <Tab.Screen
         name="Calendar"
-        component={CalendarScreen}
+        component={FadeCalendar}
         options={{
           tabBarIcon: ({ color, size }) => <Ionicons name="calendar" size={size} color={color} />,
         }}
       />
       <Tab.Screen
         name="Favorites"
-        component={FavoritesScreen}
+        component={FadeFavorites}
         options={{
-          tabBarIcon: ({ color, size }) => <Ionicons name="earth" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="star" size={size} color={color} />,
         }}
       />
       <Tab.Screen
         name="Profile"
-        component={ProfileScreen}
+        component={FadeProfile}
         options={{
           tabBarIcon: ({ color, size }) => <Ionicons name="person-circle" size={size} color={color} />,
         }}

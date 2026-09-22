@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 // ---------------------------------------------------------------------
 // THEME — change anything here to restyle the whole bar.
@@ -13,8 +14,10 @@ const THEME = {
   barRadius: 32,
   horizontalMargin: 20,   // gap between the pill and the screen edges
   bottomMargin: 20,       // gap between the pill and the bottom of the screen
+  tabsHorizontalPadding: 12, // padding INSIDE the pill, before the first/after the last tab
   underlineWidth: 20,
   underlineHeight: 3,
+  underlineAnimationMs: 250,
 };
 
 // React Navigation hands a custom tabBar exactly these three props:
@@ -22,9 +25,47 @@ const THEME = {
 // - descriptors: per-route config (icon, label, etc. from <Tab.Screen options={...}>)
 // - navigation: the object you call .navigate()/.emit() on to change screens
 export default function CustomTabBar({ state, descriptors, navigation }) {
+  const numTabs = state.routes.length;
+
+  // We need to know how wide the row of tabs actually is on screen before
+  // we can calculate where each tab's center sits — onLayout gives us that
+  // real measured width once it's rendered.
+  const [rowWidth, setRowWidth] = useState(0);
+  // rowWidth includes the bar's own paddingHorizontal on both sides, but
+  // the tabs themselves only occupy the space BETWEEN that padding — so
+  // we have to subtract it before dividing, or every tab's center comes
+  // out shifted by however much padding there is.
+  const contentWidth = Math.max(rowWidth - THEME.tabsHorizontalPadding * 2, 0);
+  const tabWidth = contentWidth / numTabs;
+
+  // A shared value is Reanimated's version of state, but it lives on the
+  // UI thread so animating it doesn't need to bounce through React/JS on
+  // every frame — that's what keeps the slide smooth instead of janky.
+  const indicatorX = useSharedValue(0);
+
+  useEffect(() => {
+    if (tabWidth === 0) return; // not measured yet
+    const centeredX =
+      THEME.tabsHorizontalPadding +
+      state.index * tabWidth +
+      (tabWidth - THEME.underlineWidth) / 2;
+    // withTiming animates the value smoothly to its new target over time,
+    // instead of jumping straight there like a plain assignment would.
+    indicatorX.value = withTiming(centeredX, { duration: THEME.underlineAnimationMs });
+  }, [state.index, tabWidth]);
+
+  // useAnimatedStyle turns a shared value into a style object that
+  // Reanimated updates every frame on the UI thread as indicatorX changes.
+  const indicatorStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: indicatorX.value }],
+  }));
+
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
-      <View style={styles.bar}>
+      <View
+        style={styles.bar}
+        onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)}
+      >
         {state.routes.map((route, index) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
@@ -61,10 +102,13 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
                 color,
                 size: THEME.iconSize,
               })}
-              <View style={[styles.underline, isFocused && styles.underlineActive]} />
             </TouchableOpacity>
           );
         })}
+
+        {/* One single indicator, absolutely positioned, that slides under
+            whichever tab is active — instead of each tab drawing its own. */}
+        <Animated.View style={[styles.indicator, indicatorStyle]} />
       </View>
     </View>
   );
@@ -88,7 +132,7 @@ const styles = StyleSheet.create({
     borderRadius: THEME.barRadius,
     marginHorizontal: THEME.horizontalMargin,
     width: `${100 - (THEME.horizontalMargin / 4)}%`,
-    paddingHorizontal: 12,
+    paddingHorizontal: THEME.tabsHorizontalPadding,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
@@ -100,14 +144,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  underline: {
-    marginTop: 6,
+  indicator: {
+    position: 'absolute',
+    bottom: 10,
+    left: 0,
     width: THEME.underlineWidth,
     height: THEME.underlineHeight,
     borderRadius: THEME.underlineHeight / 2,
-    backgroundColor: 'transparent',
-  },
-  underlineActive: {
     backgroundColor: THEME.activeColor,
   },
 });
