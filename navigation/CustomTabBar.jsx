@@ -61,7 +61,7 @@ export default function CustomTabBar({ state, descriptors, navigation }) {
   }));
 
   return (
-    <View style={styles.wrapper} pointerEvents="box-none">
+    <View style={styles.wrapper}>
       <View
         style={styles.bar}
         onLayout={(event) => setRowWidth(event.nativeEvent.layout.width)}
@@ -122,6 +122,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     alignItems: 'center',
     paddingBottom: THEME.bottomMargin,
+    pointerEvents: 'box-none',
   },
   bar: {
     flexDirection: 'row',

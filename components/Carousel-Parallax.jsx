@@ -3,7 +3,7 @@ import { Image, StyleSheet, View, useWindowDimensions } from "react-native";
 import { Carousel } from "react-native-reanimated-carousel";
 
 export default function ParallaxCarousel({
-  images = [require("../assets/splash-icon.png")],
+  images = [require("../assets/placeholder.png")],
   height = 258,
   width,
   autoplay = true,

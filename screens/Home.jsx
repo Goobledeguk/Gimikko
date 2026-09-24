@@ -31,19 +31,14 @@ export function Home() {
           Trending Gimik
         </Text>
         <ParallaxCarousel
-          images={[
-            require('../assets/gimikko.png'),
-            require('../assets/gimikko.png'),
-          ]}
+          
         />
         <Text style={{ fontFamily: 'Poppins-Bold', fontSize: 15, color: '#05dd00', textAlign: 'left', width: '100%', paddingLeft: 20, marginTop: 20, marginBottom: 10 }}>
           Recommended Gimik
         </Text>
         <ParallaxCarousel
-          images={[
-            require('../assets/gimikko.png'),
-            require('../assets/gimikko.png'),
-          ]}
+
+
         /><Text style={{ fontFamily: 'Poppins-Bold', fontSize: 15, color: '#05dd00', textAlign: 'left', width: '100%', paddingLeft: 20, marginTop: 20, marginBottom: 10 }}>
           Nearby Gimik
         </Text>
