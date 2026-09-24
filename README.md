@@ -5,3 +5,23 @@
   <hr>
   
 </div>
+
+
+
+## Running the App
+
+To run the Gimmikko, run the following command for dependencies first: 
+
+```bash
+  npm install 
+```
+
+Next for previewing, you need android app if ever you dont have you can run it into the web: 
+
+```bash 
+   npx expo start 
+   localhost:8081
+   
+   a //for android 
+   w //for web
+```
