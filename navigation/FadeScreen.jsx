@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
-const FADE_DURATION_MS = 220;
+const FADE_DURATION_MS = 300;
 
 // Wrap any screen's contents in <FadeScreen> to fade it in whenever the
 // user navigates to it. useIsFocused() re-renders this component each
