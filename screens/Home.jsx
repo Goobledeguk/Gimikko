@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View, Image, ScrollView } from 'react-native';
 import ParallaxCarousel from '../components/Carousel-Parallax.jsx';
+// Now imported from a shared file instead of declared locally — see the
+// comment in data/mockUser.js for why. CalendarScreen imports the exact
+// same object below.
+import { user } from '../user/user.js';
 
 export function Home() {
-  
+
   const [isScrolled, setIsScrolled] = useState(false); // 
 
   const handleScroll = (event) => {
@@ -11,8 +15,7 @@ export function Home() {
     setIsScrolled(offsetY > 4);
   }; // handles the Scroll — calculation for content offeset when scrooled 
 
-let user = { name: "Nigel", rating: 5, eventsAttended: 5 }
-const {name, rating, eventsAttended } = user // Deconstructed data for passing 
+const { name, rating, eventsAttended } = user // Deconstructed data for passing 
 
   return (
     <View style={styles.container}>
