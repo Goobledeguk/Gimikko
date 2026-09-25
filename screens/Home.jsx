@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, View, Image, ScrollView } from 'react-native';
 import ParallaxCarousel from '../components/Carousel-Parallax.jsx';
 
-export function Home({navigation}) {
+export function Home() {
   
   const [isScrolled, setIsScrolled] = useState(false); // 
 

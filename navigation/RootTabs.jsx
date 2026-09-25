@@ -13,10 +13,16 @@ const Tab = createBottomTabNavigator();
 // so each one is a stable reference. An inline arrow function would create a
 // brand-new component type on every render, which React Navigation would
 // then remount from scratch — losing scroll position, state, etc.
-const FadeHome = () => <FadeScreen><Home /></FadeScreen>;
-const FadeCalendar = () => <FadeScreen><CalendarScreen /></FadeScreen>;
-const FadeFavorites = () => <FadeScreen><FavoritesScreen /></FadeScreen>;
-const FadeProfile = () => <FadeScreen><ProfileScreen /></FadeScreen>;
+//
+// Each wrapper takes `props` (which React Navigation supplies: navigation,
+// route, etc.) and spreads it onto the real screen with {...props} — skip
+// that step and the screen never receives `navigation`, so any
+// navigation.navigate(...) call inside it throws "navigate is not a
+// function" the moment you press a button.
+const FadeHome = (props) => <FadeScreen><Home {...props} /></FadeScreen>;
+const FadeCalendar = (props) => <FadeScreen><CalendarScreen {...props} /></FadeScreen>;
+const FadeFavorites = (props) => <FadeScreen><FavoritesScreen {...props} /></FadeScreen>;
+const FadeProfile = (props) => <FadeScreen><ProfileScreen {...props} /></FadeScreen>;
 
 export default function RootTabs() {
   return (
