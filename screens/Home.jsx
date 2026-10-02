@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, Image, ScrollView } from 'react-native';
 import ParallaxCarousel from '../components/Carousel-Parallax.jsx';
 
 export function Home() {
-  
+
   const [isScrolled, setIsScrolled] = useState(false); // 
 
   const handleScroll = (event) => {
@@ -11,8 +11,8 @@ export function Home() {
     setIsScrolled(offsetY > 4);
   }; // handles the Scroll — calculation for content offeset when scrooled 
 
-let user = { name: "Nigel", rating: 5, eventsAttended: 5 }
-const {name, rating, eventsAttended } = user // Deconstructed data for passing 
+  // Hardcoded for now — this is a static prototype, no data file behind it
+  const name = 'Nigel';
 
   return (
     <View style={styles.container}>
