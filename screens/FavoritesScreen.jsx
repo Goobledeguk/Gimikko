@@ -5,7 +5,7 @@ export default function FavoritesScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Welcome Header */}
       <View style={styles.header}>
-        <Text style={styles.welcomeText}>Welcome Nigel!</Text>
+        <Text style={styles.welcomeText}>Welcome Juan!</Text>
       </View>
 
       {/* Trending Gimik Section */}
