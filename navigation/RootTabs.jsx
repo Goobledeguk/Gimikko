@@ -3,8 +3,8 @@ import { Ionicons } from '@expo/vector-icons';
 import CustomTabBar from './CustomTabBar';
 import FadeScreen from './FadeScreen';
 import { Home } from '../screens/Home';
-import CalendarScreen from '../screens/CalendarScreen';
-import FavoritesScreen from '../screens/FavoritesScreen';
+import UpComingScreen from '../screens/UpComingScreen';
+import DiscoverScreen from '../screens/DiscoverScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
@@ -20,8 +20,8 @@ const Tab = createBottomTabNavigator();
 // navigation.navigate(...) call inside it throws "navigate is not a
 // function" the moment you press a button.
 const FadeHome = (props) => <FadeScreen><Home {...props} /></FadeScreen>;
-const FadeCalendar = (props) => <FadeScreen><CalendarScreen {...props} /></FadeScreen>;
-const FadeFavorites = (props) => <FadeScreen><FavoritesScreen {...props} /></FadeScreen>;
+const FadeUpComing = (props) => <FadeScreen><UpComingScreen {...props} /></FadeScreen>;
+const FadeDiscover = (props) => <FadeScreen><DiscoverScreen {...props} /></FadeScreen>;
 const FadeProfile = (props) => <FadeScreen><ProfileScreen {...props} /></FadeScreen>;
 
 export default function RootTabs() {
@@ -43,14 +43,14 @@ export default function RootTabs() {
       />
       <Tab.Screen
         name="Calendar"
-        component={FadeCalendar}
+        component={FadeUpComing}
         options={{
           tabBarIcon: ({ color, size }) => <Ionicons name="calendar" size={size} color={color} />,
         }}
       />
       <Tab.Screen
-        name="Favorites"
-        component={FadeFavorites}
+        name="Discover"
+        component={FadeDiscover}
         options={{
           tabBarIcon: ({ color, size }) => <Ionicons name="star" size={size} color={color} />,
         }}

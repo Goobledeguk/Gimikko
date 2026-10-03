@@ -28,15 +28,7 @@ export function Home() {
         nestedScrollEnabled={true}
       >
         {/* Welcome line — typed directly, no name variable */}
-        <Text style={styles.welcome}>Welcome back Juan!</Text>
-
-        {/* Short info blurb — tells a new user what this screen/app is for */}
-        <View style={styles.infoCard}>
-          <Ionicons name="sparkles" size={20} color="#05dd00" />
-          <Text style={styles.infoText}>
-            Discover local events, see what's trending nearby, and find your next gimik.
-          </Text>
-        </View>
+        <Text style={styles.welcome}>Welcome back!</Text>
 
         {/* Dashboard card — stats only, no repeated name */}
         <View style={styles.dashboard}>
@@ -155,7 +147,7 @@ export function Home() {
           <View style={styles.commentHeader}>
             <Ionicons name="person-circle" size={36} color="#05dd00" />
             <View style={styles.commentNameBlock}>
-              <Text style={styles.commentName}>Jax</Text>
+              <Text style={styles.commentName}>Dax</Text>
               <View style={styles.commentStars}>
                 <Ionicons name="star" size={12} color="#FFD700" />
                 <Ionicons name="star" size={12} color="#FFD700" />
@@ -234,24 +226,6 @@ const styles = StyleSheet.create({
     paddingLeft: 20,
     marginTop: 10,
     marginBottom: 10,
-  },
-
-  // ---- Info blurb ----
-  infoCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '90%',
-    backgroundColor: '#f2fdf1',
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 14,
-    gap: 10,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 12,
-    color: '#444',
-    lineHeight: 17,
   },
 
   // ---- Dashboard card ----
