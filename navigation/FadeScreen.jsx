@@ -1,3 +1,12 @@
+// =============================================================================
+// FadeScreen.jsx — a reusable wrapper, not a screen itself. RootTabs.jsx
+// wraps every real screen (Home, CalendarScreen, etc.) in this component
+// so that switching tabs fades the new screen in, instead of an instant
+// hard cut. Nothing else in the app needs to know this exists — it's
+// purely a presentation layer sitting between RootTabs and each screen.
+// =============================================================================
+
+
 import { useEffect } from 'react';
 import { useIsFocused } from '@react-navigation/native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';

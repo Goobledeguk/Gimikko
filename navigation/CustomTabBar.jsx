@@ -1,3 +1,12 @@
+// =============================================================================
+// CustomTabBar.jsx — replaces React Navigation's default bottom tab bar
+// with our own: a floating white pill with icons and a sliding green
+// underline. Registered in RootTabs.jsx via the Tab.Navigator's `tabBar`
+// prop, which is what hands this component its three inputs: `state`
+// (which tab is active), `descriptors` (each tab's icon/options), and
+// `navigation` (used to actually switch tabs on tap).
+// =============================================================================
+
 import React, { useEffect, useState } from 'react';
 import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';

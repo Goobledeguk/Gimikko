@@ -1,3 +1,12 @@
+// =============================================================================
+// RootTabs.jsx — the app's navigation map. Declares which screens exist as
+// tabs, in what order, with which icons, and wires in CustomTabBar (the
+// visual bar) and FadeScreen (the fade-in transition) around every screen.
+// Rendered by App.js inside <NavigationContainer>, and is the ONLY file
+// that needs editing to add, remove, or reorder tabs.
+// =============================================================================
+
+
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import CustomTabBar from './CustomTabBar';
