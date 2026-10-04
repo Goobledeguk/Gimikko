@@ -24,7 +24,6 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
-import * as NavigationBar from 'expo-navigation-bar';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import RootTabs from './navigation/RootTabs.jsx';
