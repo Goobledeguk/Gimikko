@@ -206,7 +206,7 @@ export default function ProfileScreen({ navigation }) {
       <Modal
         visible={showSettingsPopup}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowSettingsPopup(false)}
       >
         <View style={styles.popupOverlay}>
@@ -246,7 +246,7 @@ export default function ProfileScreen({ navigation }) {
       <Modal
         visible={showAboutPopup}
         transparent
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setShowAboutPopup(false)}
       >
         <View style={styles.popupOverlay}>
