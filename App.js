@@ -24,10 +24,26 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
+import * as NavigationBar from 'expo-navigation-bar';
 import { useFonts } from 'expo-font';
-import { useEffect } from 'react';
 import RootTabs from './navigation/RootTabs.jsx';
-import * as NavigationBar from 'expo-navigation-bar'
+
+// Called once, when this module first loads — not inside the component,
+// and not inside a useEffect. This is the same pattern as
+// SplashScreen.preventAutoHideAsync() used to be called earlier in this
+// file: a fire-and-forget side effect that doesn't depend on anything the
+// component renders, so it doesn't need to be tied to React's lifecycle
+// at all. Only calls setVisibilityAsync — NOT setBehaviorAsync, which is
+// the one that crashes on real devices under Android's edge-to-edge
+// enforcement. Wrapped in try/catch so an unsupported future Android
+// version just leaves the nav bar visible instead of crashing the app.
+if (Platform.OS === 'android') {
+  try {
+    NavigationBar.setVisibilityAsync('hidden');
+  } catch (error) {
+    console.warn('NavigationBar.setVisibilityAsync unsupported:', error);
+  }
+}
 
 export default function App() {
   // Loads the two font files so `fontFamily: 'Poppins-Bold'` /
@@ -38,20 +54,6 @@ export default function App() {
     'Poppins-Bold': require('./assets/fonts/Poppins-Bold.ttf'),
     'Poppins-Regular': require('./assets/fonts/Poppins-Regular.ttf'),
   });
-
-  // Only calls setVisibilityAsync — NOT setBehaviorAsync, which is the one
-  // that crashes. Wrapped in try/catch as a safety net in case this
-  // function also becomes unsupported on some future Android version —
-  // worst case the nav bar just stays visible, instead of crashing the app.
-  useEffect(() => {
-    if (Platform.OS === 'android') {
-      try {
-        NavigationBar.setVisibilityAsync('hidden');
-      } catch (error) {
-        console.warn('NavigationBar.setVisibilityAsync unsupported:', error);
-      }
-    }
-  }, []);
 
   // No custom loading screen component this time — just render nothing
   // at all until the font is ready. This is a very brief blank frame,

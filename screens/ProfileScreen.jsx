@@ -1,16 +1,25 @@
-import React from "react";
-import {View, Text, StyleSheet, TouchableOpacity, ScrollView,} from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Modal,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 
 // This function creates the Profile Screen of our application.
 export default function ProfileScreen({ navigation }) {
+  // One boolean per popup — each controls whether its own <Modal> is
+  // visible. This is a pure UI prototype: tapping a row just flips one of
+  // these to true, there's no real editing/settings logic behind any of it.
+  const [showEditPopup, setShowEditPopup] = useState(false);
+  const [showSettingsPopup, setShowSettingsPopup] = useState(false);
+  const [showAboutPopup, setShowAboutPopup] = useState(false);
+
   return (
     <View style={styles.container}>
-
-      {/* Settings button - placed at the top-right corner */}
-      <TouchableOpacity style={styles.settingsButton}>
-        <Ionicons name="settings" size={32} color="white" />
-      </TouchableOpacity>
 
       {/* ScrollView allows the user to scroll through the profile content */}
       <ScrollView
@@ -23,8 +32,16 @@ export default function ProfileScreen({ navigation }) {
           <Ionicons name="person" size={65} color="#777" />
         </View>
 
-        {/* User's name and username */}
-        <Text style={styles.name}>Nigel</Text>
+        {/* Name + inline edit icon, side by side in one row */}
+        <View style={styles.nameRow}>
+          <Text style={styles.name}>Nigel</Text>
+          <TouchableOpacity
+            style={styles.editIconButton}
+            onPress={() => setShowEditPopup(true)}
+          >
+            <Ionicons name="create-outline" size={20} color="#0BD318" />
+          </TouchableOpacity>
+        </View>
         <Text style={styles.username}>@nigel_gimik</Text>
 
         {/* User's location */}
@@ -61,11 +78,6 @@ export default function ProfileScreen({ navigation }) {
 
         </View>
 
-        {/* Edit Profile button */}
-        <TouchableOpacity style={styles.editButton}>
-          <Ionicons name="create-outline" size={20} color="white" />
-          <Text style={styles.editText}>Edit Profile</Text>
-        </TouchableOpacity>
 
         {/* Section title for saved events */}
         <Text style={styles.sectionTitle}>My Saved Gimik</Text>
@@ -126,45 +138,153 @@ export default function ProfileScreen({ navigation }) {
 
         </TouchableOpacity>
 
+        {/* Section title for the two menu rows below */}
+        <Text style={styles.sectionTitle}>More</Text>
+
+        {/* Settings row — opens the Settings popup */}
+        <TouchableOpacity
+          style={styles.eventCard}
+          onPress={() => setShowSettingsPopup(true)}
+        >
+          <View style={styles.eventIcon}>
+            <Ionicons name="settings-outline" size={28} color="#0BD318" />
+          </View>
+          <View style={styles.eventInfo}>
+            <Text style={styles.eventTitle}>Settings</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={24} color="#999" />
+        </TouchableOpacity>
+
+        {/* About row — opens the About popup */}
+        <TouchableOpacity
+          style={styles.eventCard}
+          onPress={() => setShowAboutPopup(true)}
+        >
+          <View style={styles.eventIcon}>
+            <Ionicons name="information-circle-outline" size={28} color="#0BD318" />
+          </View>
+          <View style={styles.eventInfo}>
+            <Text style={styles.eventTitle}>About</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={24} color="#999" />
+        </TouchableOpacity>
+
       </ScrollView>
 
-      {/* Bottom navigation bar */}
-      <View style={styles.bottomNav}>
+      {/* ------------------------------------------------------------- */}
+      {/* EDIT PROFILE POPUP — shown when the pencil icon beside the name
+          is tapped. Pure prototype: just confirms "updated" visually,
+          no real save/edit logic behind it. */}
+      {/* ------------------------------------------------------------- */}
+      <Modal
+        visible={showEditPopup}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowEditPopup(false)}
+      >
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupCard}>
+            <Ionicons name="checkmark-circle" size={44} color="#0BD318" />
+            <Text style={styles.popupTitle}>Updated Details</Text>
+            <Text style={styles.popupText}>
+              Your profile information has been updated.
+            </Text>
+            <TouchableOpacity
+              style={styles.popupCloseButton}
+              onPress={() => setShowEditPopup(false)}
+            >
+              <Text style={styles.popupCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
-        {/* Home navigation button */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Home")}
-        >
-          <Ionicons name="home" size={35} color="#999" />
-        </TouchableOpacity>
+      {/* ------------------------------------------------------------- */}
+      {/* SETTINGS POPUP — three category buttons, typed directly, with
+          NO onPress function attached (per request: visual only). */}
+      {/* ------------------------------------------------------------- */}
+      <Modal
+        visible={showSettingsPopup}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowSettingsPopup(false)}
+      >
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupCard}>
+            <Text style={styles.popupTitle}>Settings</Text>
 
-        {/* Events navigation button */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Events")}
-        >
-          <Ionicons name="calendar" size={35} color="#999" />
-        </TouchableOpacity>
+            <TouchableOpacity style={styles.settingsOption}>
+              <Ionicons name="time-outline" size={20} color="#333" />
+              <Text style={styles.settingsOptionText}>Activity Log</Text>
+            </TouchableOpacity>
 
-        {/* Saved navigation button */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Saved")}
-        >
-          <Ionicons name="star" size={35} color="#999" />
-        </TouchableOpacity>
+            <TouchableOpacity style={styles.settingsOption}>
+              <Ionicons name="lock-closed-outline" size={20} color="#333" />
+              <Text style={styles.settingsOptionText}>Privacy</Text>
+            </TouchableOpacity>
 
-        {/* Profile navigation button - currently active */}
-        <TouchableOpacity>
-          <Ionicons
-            name="person-circle"
-            size={38}
-            color="#0BD318"
-          />
+            <TouchableOpacity style={styles.settingsOption}>
+              <Ionicons name="options-outline" size={20} color="#333" />
+              <Text style={styles.settingsOptionText}>Preference</Text>
+            </TouchableOpacity>
 
-          {/* Green line shows that Profile is the active screen */}
-          <View style={styles.activeLine} />
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.popupCloseButton}
+              onPress={() => setShowSettingsPopup(false)}
+            >
+              <Text style={styles.popupCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
-      </View>
+      {/* ------------------------------------------------------------- */}
+      {/* ABOUT POPUP — each name/handle typed directly (no array/.map —
+          same "hardcode everything" approach used elsewhere in this
+          prototype), centered, with a divider line between entries. */}
+      {/* ------------------------------------------------------------- */}
+      <Modal
+        visible={showAboutPopup}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowAboutPopup(false)}
+      >
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupCard}>
+            <Text style={styles.popupTitle}>About</Text>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={styles.aboutScroll}>
+              <Text style={styles.aboutName}>Alizzander Cahusay</Text>
+              <Text style={styles.aboutHandle}>@Goobledeguk</Text>
+              <View style={styles.aboutDivider} />
+
+              <Text style={styles.aboutName}>Gracia May Alpez</Text>
+              <Text style={styles.aboutHandle}>@gm158</Text>
+              <View style={styles.aboutDivider} />
+
+              <Text style={styles.aboutName}>Mark Anthony Jubasan</Text>
+              <Text style={styles.aboutHandle}>@MarkJubasan</Text>
+              <View style={styles.aboutDivider} />
+
+              <Text style={styles.aboutName}>Stephen Joriza</Text>
+              <Text style={styles.aboutHandle}>@Baliwalo03</Text>
+              <View style={styles.aboutDivider} />
+
+              <Text style={styles.aboutName}>Liza Mae Timan</Text>
+              <Text style={styles.aboutHandle}>@sheimaiii</Text>
+
+              <Text style={styles.aboutCopyright}>Gimikko © 2026</Text>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.popupCloseButton}
+              onPress={() => setShowAboutPopup(false)}
+            >
+              <Text style={styles.popupCloseText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
     </View>
   );
@@ -219,11 +339,28 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
 
+  // Name + edit icon sit side by side in this row
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
   // Style for the user's name
   name: {
     fontSize: 30,
     fontWeight: "bold",
     color: "#222",
+  },
+
+  // Small circular tap target for the pencil/edit icon beside the name
+  editIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#E9FFE9",
+    justifyContent: "center",
+    alignItems: "center",
   },
 
   // Style for the username
@@ -286,27 +423,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
   },
 
-  // Style for the Edit Profile button
-  editButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#0BD318",
-    width: "100%",
-    paddingVertical: 14,
-    borderRadius: 30,
-    marginTop: 20,
-  },
-
-  // Style for the Edit Profile text
-  editText: {
-    color: "white",
-    fontSize: 17,
-    fontWeight: "bold",
-    marginLeft: 8,
-  },
-
-  // Style for the "My Saved Gimik" title
+  // Style for the "My Saved Gimik" / "More" section titles
   sectionTitle: {
     alignSelf: "flex-start",
     fontSize: 23,
@@ -316,7 +433,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  // Style for each saved event card
+  // Style for each saved event card AND the Settings/About menu rows
+  // (same visual treatment, reused rather than duplicated)
   eventCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -327,7 +445,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  // Background and size of the event icon
+  // Background and size of the event/menu icon
   eventIcon: {
     width: 55,
     height: 55,
@@ -337,13 +455,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // Controls the event information area
+  // Controls the event/menu information area
   eventInfo: {
     flex: 1,
     marginLeft: 12,
   },
 
-  // Style for the event title
+  // Style for the event/menu title
   eventTitle: {
     fontSize: 16,
     fontWeight: "bold",
@@ -362,6 +480,95 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#888",
     marginTop: 3,
+  },
+
+  // ---- Popup (Modal) shared styles ----
+  // Dark semi-transparent backdrop behind every popup
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  // The white rounded card itself, centered on screen
+  popupCard: {
+    width: "100%",
+    maxHeight: "75%",
+    backgroundColor: "#ffffff",
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+  },
+  popupTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#222",
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  popupText: {
+    fontSize: 14,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  popupCloseButton: {
+    backgroundColor: "#0BD318",
+    paddingVertical: 10,
+    paddingHorizontal: 32,
+    borderRadius: 20,
+    marginTop: 16,
+  },
+  popupCloseText: {
+    color: "#ffffff",
+    fontWeight: "bold",
+    fontSize: 15,
+  },
+
+  // ---- Settings popup options ----
+  settingsOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    paddingVertical: 14,
+    gap: 12,
+  },
+  settingsOptionText: {
+    fontSize: 15,
+    color: "#333",
+  },
+
+  // ---- About popup list ----
+  aboutScroll: {
+    width: "100%",
+    maxHeight: 280,
+  },
+  aboutName: {
+    fontSize: 15,
+    fontWeight: "bold",
+    color: "#222",
+    textAlign: "center",
+  },
+  aboutHandle: {
+    fontSize: 13,
+    color: "#888",
+    textAlign: "center",
+    marginTop: 2,
+    marginBottom: 12,
+  },
+  aboutDivider: {
+    width: "100%",
+    height: 1,
+    backgroundColor: "#eee",
+    marginBottom: 12,
+  },
+  aboutCopyright: {
+    fontSize: 12,
+    color: "#999",
+    textAlign: "center",
+    marginTop: 16,
+    marginBottom: 4,
   },
 
   // Style for the bottom navigation bar
