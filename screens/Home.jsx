@@ -49,9 +49,10 @@ export function Home() {
 
         {/* Dashboard card — stats only, no repeated name */}
         <View style={styles.dashboard}>
-          <View style={styles.dashboardHeader}>
-            <Ionicons name="person-circle" size={48} color="#05dd00" />
-            <Text style={styles.dashboardSubtitle}>Nigel De Vera</Text>
+          {/* Location row — typed directly, matches ProfileScreen's location styling */}
+          <View style={styles.locationRow}>
+            <Ionicons name="location" size={16} color="#05dd00" />
+            <Text style={styles.locationText}>Calbayog City, Samar</Text>
           </View>
 
           <View style={styles.statsRow}>
@@ -82,8 +83,10 @@ export function Home() {
           ]}
         />
 
-      {/* Comments / Review — each card*/}
-      <Text style={styles.subheading}>Event Feed</Text>
+
+
+        {/* Comments / testimonials — each card typed out directly */}
+        <Text style={styles.subheading}>What People Are Saying</Text>
 
         <View style={styles.commentCard}>
           <View style={styles.commentHeader}>
@@ -141,8 +144,7 @@ export function Home() {
             Nice layout, would love to see more sports events added soon.
           </Text>
         </View>
-
-        {/* Recommended carousel */}
+                {/* Recommended carousel */}
         <Text style={styles.subheading}>Recommended Gimik</Text>
         <ParallaxCarousel
           images={[
@@ -150,7 +152,7 @@ export function Home() {
             require('../assets/event/match.jpg'),
             require('../assets/event/Basketball.jpg'),
           ]}
-        />        
+        />
       </ScrollView>
     </View>
   );
@@ -231,16 +233,17 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  dashboardHeader: {
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
-    gap: 12,
+    gap: 4,
   },
-  dashboardSubtitle: {
-    fontFamily: 'Poppins-Bold',
-    fontSize: 14,
-    color: '#222',
+  locationText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#666',
   },
   statsRow: {
     flexDirection: 'row',

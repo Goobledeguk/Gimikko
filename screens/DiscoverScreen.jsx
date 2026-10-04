@@ -55,7 +55,7 @@ export default function DiscoverScreen() {
             onPress={() => setRevealed2((prev) => !prev)}
           >
             <Image
-              source={require('../assets/event/hadang.jpg')}
+              source={require('../assets/event/Market.jpg')}
               style={styles.cardImage}
             />
             {revealed2 && (
@@ -91,12 +91,12 @@ export default function DiscoverScreen() {
             onPress={() => setRevealed4((prev) => !prev)}
           >
             <Image
-              source={require('../assets/event/Hidden.jpg')}
+              source={require('../assets/event/pickle.jpg')}
               style={styles.cardImage}
             />
             {revealed4 && (
               <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>Talent Fair</Text>
+                <Text style={styles.cardTitle}>The Kitchen: Tournament</Text>
                 <Text style={styles.cardDate}>Oct 20, 2026</Text>
               </View>
             )}
@@ -150,7 +150,7 @@ export default function DiscoverScreen() {
             />
             {revealed7 && (
               <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>All Souls Celebration</Text>
+                <Text style={styles.cardTitle}>Remembrance Celebration</Text>
                 <Text style={styles.cardDate}>Nov 1, 2026</Text>
               </View>
             )}
@@ -163,13 +163,13 @@ export default function DiscoverScreen() {
             onPress={() => setRevealed8((prev) => !prev)}
           >
             <Image
-              source={require('../assets/event/hadang.jpg')}
+              source={require('../assets/event/Hackathon.jpg')}
               style={styles.cardImage}
             />
             {revealed8 && (
               <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>Food Festival</Text>
-                <Text style={styles.cardDate}>Oct 25, 2026</Text>
+                <Text style={styles.cardTitle}>Regional Hackathon</Text>
+                <Text style={styles.cardDate}>Nov 15, 2026</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -181,13 +181,13 @@ export default function DiscoverScreen() {
             onPress={() => setRevealed9((prev) => !prev)}
           >
             <Image
-              source={require('../assets/event/hadang.jpg')}
+              source={require('../assets/event/run.jpg')}
               style={styles.cardImage}
             />
             {revealed9 && (
               <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>Food Festival</Text>
-                <Text style={styles.cardDate}>Oct 25, 2026</Text>
+                <Text style={styles.cardTitle}>Fun Run: 25k</Text>
+                <Text style={styles.cardDate}>Nov 22, 2026</Text>
               </View>
             )}
           </TouchableOpacity>
@@ -199,13 +199,13 @@ export default function DiscoverScreen() {
             onPress={() => setRevealed10((prev) => !prev)}
           >
             <Image
-              source={require('../assets/event/hadang.jpg')}
+              source={require('../assets/event/Ponds.jpg')}
               style={styles.cardImage}
             />
             {revealed10 && (
               <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>Food Festival</Text>
-                <Text style={styles.cardDate}>Oct 25, 2026</Text>
+                <Text style={styles.cardTitle}>Ponds Sponsorship</Text>
+                <Text style={styles.cardDate}>Nov 25, 2026</Text>
               </View>
             )}
           </TouchableOpacity>
