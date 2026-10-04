@@ -45,13 +45,13 @@ export function Home() {
         nestedScrollEnabled={true}
       >
         {/* Welcome line — typed directly, no name variable */}
-        <Text style={styles.welcome}>Welcome back Juan!</Text>
+        <Text style={styles.welcome}>Welcome back Nigel!</Text>
 
         {/* Dashboard card — stats only, no repeated name */}
         <View style={styles.dashboard}>
           <View style={styles.dashboardHeader}>
             <Ionicons name="person-circle" size={48} color="#05dd00" />
-            <Text style={styles.dashboardSubtitle}>Juan De Vera</Text>
+            <Text style={styles.dashboardSubtitle}>Nigel De Vera</Text>
           </View>
 
           <View style={styles.statsRow}>

@@ -27,6 +27,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import RootTabs from './navigation/RootTabs.jsx';
+import * as NavigationBar from 'expo-navigation-bar'
 
 export default function App() {
   // Loads the two font files so `fontFamily: 'Poppins-Bold'` /
