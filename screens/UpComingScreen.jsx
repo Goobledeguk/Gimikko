@@ -51,10 +51,10 @@ export default function CalendarScreen() {
           <View style={styles.cardOverlay} />
           <View style={styles.cardContent}>
             <View style={styles.typeTag}>
-              <Text style={styles.typeTagText}>Market</Text>
+              <Text style={styles.typeTagText}>Sport</Text>
             </View>
             <Text style={styles.eventName} numberOfLines={1}>
-              Sunday Palengke Bazaar
+              Pickleball Tournament
             </Text>
             <Text style={styles.eventDate}>Oct 15, 2026</Text>
             <View style={styles.starsRow}>
@@ -101,7 +101,7 @@ export default function CalendarScreen() {
           <View style={styles.cardOverlay} />
           <View style={styles.cardContent}>
             <View style={styles.typeTag}>
-              <Text style={styles.typeTagText}>Market</Text>
+              <Text style={styles.typeTagText}>Social</Text>
             </View>
             <Text style={styles.eventName} numberOfLines={1}>
               Hidden Talent Fair
@@ -126,10 +126,10 @@ export default function CalendarScreen() {
           <View style={styles.cardOverlay} />
           <View style={styles.cardContent}>
             <View style={styles.typeTag}>
-              <Text style={styles.typeTagText}>Sport</Text>
+              <Text style={styles.typeTagText}>Social</Text>
             </View>
             <Text style={styles.eventName} numberOfLines={1}>
-              Nigel's Match Night
+              Nigel's Matcha Night
             </Text>
             <Text style={styles.eventDate}>Oct 22, 2026</Text>
             <View style={styles.starsRow}>
@@ -176,7 +176,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   cardOverlay: {
-    ...StyleSheet.absoluteFillObject,
+position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,     
     backgroundColor: 'rgba(0, 0, 0, 0.68)',
   },
   cardContent: {

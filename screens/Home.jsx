@@ -1,14 +1,31 @@
+// =============================================================================
+// Home.jsx — the "Home" tab. A fixed logo/title header (which gains a drop
+// shadow once the user scrolls) above a scrolling page containing: a
+// welcome line, a stats dashboard, two ParallaxCarousel sections, a
+// horizontal row of other-event thumbnails, and a few testimonial cards.
+// Pure UI prototype — every value (names, numbers, comments) is typed
+// directly below, nothing is loaded from a data file.
+// =============================================================================
 import { useState } from 'react';
 import { StyleSheet, Text, View, Image, ScrollView } from 'react-native';
+// gesture-handler's ScrollView (NOT the plain React Native one) specifically
+// for the horizontal row below — since the app is already wrapped in
+// GestureHandlerRootView (see App.js), using its ScrollView for a scroll
+// view nested inside another one lets both negotiate the gesture properly,
+// which plain ScrollView + nestedScrollEnabled doesn't always manage.
+import { ScrollView as HorizontalScrollView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import ParallaxCarousel from '../components/Carousel-Parallax.jsx';
 
 export function Home() {
+  // Tracks whether the ScrollView has moved past its very top, so the
+  // header below can show a drop shadow only once there's actually
+  // content sliding underneath it.
   const [isScrolled, setIsScrolled] = useState(false);
 
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
-    setIsScrolled(offsetY > 4);
+    setIsScrolled(offsetY > 4); // small threshold avoids flicker right at y=0
   };
 
   return (
@@ -28,13 +45,13 @@ export function Home() {
         nestedScrollEnabled={true}
       >
         {/* Welcome line — typed directly, no name variable */}
-        <Text style={styles.welcome}>Welcome back!</Text>
+        <Text style={styles.welcome}>Welcome back Juan!</Text>
 
         {/* Dashboard card — stats only, no repeated name */}
         <View style={styles.dashboard}>
           <View style={styles.dashboardHeader}>
             <Ionicons name="person-circle" size={48} color="#05dd00" />
-            <Text style={styles.dashboardSubtitle}>Your Gimik Profile</Text>
+            <Text style={styles.dashboardSubtitle}>Juan De Vera</Text>
           </View>
 
           <View style={styles.statsRow}>
@@ -65,45 +82,8 @@ export function Home() {
           ]}
         />
 
-        {/* Recommended carousel */}
-        <Text style={styles.subheading}>Recommended Gimik</Text>
-        <ParallaxCarousel
-          images={[
-            require('../assets/event/Hidden.jpg'),
-            require('../assets/event/match.jpg'),
-          ]}
-        />
-
-        {/* Other events — small horizontal row of thumbnails, typed one by one */}
-        <Text style={styles.subheading}>Other Events Near You</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.otherEventsRow}
-        >
-          <View style={styles.otherEventCard}>
-            <Image source={require('../assets/event/hadang.jpg')} style={styles.otherEventImage} />
-            <Text style={styles.otherEventLabel} numberOfLines={1}>Hadang Championship</Text>
-          </View>
-
-          <View style={styles.otherEventCard}>
-            <Image source={require('../assets/event/pickle.jpg')} style={styles.otherEventImage} />
-            <Text style={styles.otherEventLabel} numberOfLines={1}>Palengke Bazaar</Text>
-          </View>
-
-          <View style={styles.otherEventCard}>
-            <Image source={require('../assets/event/hanumduman.jpg')} style={styles.otherEventImage} />
-            <Text style={styles.otherEventLabel} numberOfLines={1}>Live Night</Text>
-          </View>
-
-          <View style={styles.otherEventCard}>
-            <Image source={require('../assets/event/Hidden.jpg')} style={styles.otherEventImage} />
-            <Text style={styles.otherEventLabel} numberOfLines={1}>Talent Fair</Text>
-          </View>
-        </ScrollView>
-
-        {/* Comments / testimonials — each card typed out directly */}
-        <Text style={styles.subheading}>What People Are Saying</Text>
+      {/* Comments / Review — each card*/}
+      <Text style={styles.subheading}>Event Feed</Text>
 
         <View style={styles.commentCard}>
           <View style={styles.commentHeader}>
@@ -147,7 +127,7 @@ export function Home() {
           <View style={styles.commentHeader}>
             <Ionicons name="person-circle" size={36} color="#05dd00" />
             <View style={styles.commentNameBlock}>
-              <Text style={styles.commentName}>Dax</Text>
+              <Text style={styles.commentName}>Jax</Text>
               <View style={styles.commentStars}>
                 <Ionicons name="star" size={12} color="#FFD700" />
                 <Ionicons name="star" size={12} color="#FFD700" />
@@ -161,6 +141,16 @@ export function Home() {
             Nice layout, would love to see more sports events added soon.
           </Text>
         </View>
+
+        {/* Recommended carousel */}
+        <Text style={styles.subheading}>Recommended Gimik</Text>
+        <ParallaxCarousel
+          images={[
+            require('../assets/event/Hidden.jpg'),
+            require('../assets/event/match.jpg'),
+            require('../assets/event/Basketball.jpg'),
+          ]}
+        />        
       </ScrollView>
     </View>
   );

@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { BlurView } from 'expo-blur';
 
 // Pure UI prototype: 2-column image grid, no array/data file — each card
-// is its own block with its own useState toggle. Tapping a card blurs the
-// photo and reveals its title + date on top; tapping again hides them.
+// is its own block with its own useState toggle. Tapping a card reveals
+// its title + date on top of a dark semi-transparent cardOverlay; tapping again hides them.
 
 export default function DiscoverScreen() {
   // One boolean per card — since nothing is looped/mapped, each card
@@ -16,140 +15,203 @@ export default function DiscoverScreen() {
   const [revealed5, setRevealed5] = useState(false);
   const [revealed6, setRevealed6] = useState(false);
   const [revealed7, setRevealed7] = useState(false);
+  const [revealed8, setRevealed8] = useState(false);
+  const [revealed9, setRevealed9] = useState(false);
+  const [revealed10, setRevealed10] = useState(false);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+    <View style={styles.container}>
+      {/* Header lives OUTSIDE the ScrollView below, as a plain sibling —
+          same pattern as CalendarScreen's header. Since it's never placed
+          inside the scrollable area, scrolling the grid can't move it. */}
       <View style={styles.header}>
         <Text style={styles.welcomeText}>Discover Events</Text>
       </View>
 
-      <View style={styles.grid}>
-        {/* Card 1 */}
-        <TouchableOpacity
-          style={styles.card}
-          activeOpacity={0.9}
-          onPress={() => setRevealed1((prev) => !prev)}
-        >
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=600' }}
-            style={styles.cardImage}
-          />
-          {revealed1 && (
-            <BlurView intensity={60} tint="dark" style={styles.blurOverlay}>
-              <Text style={styles.cardTitle}>Hadang Championship</Text>
-              <Text style={styles.cardDate}>Oct 12, 2026</Text>
-            </BlurView>
-          )}
-        </TouchableOpacity>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.grid}>
+          {/* Card 1 */}
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => setRevealed1((prev) => !prev)}
+          >
+            <Image
+              source={require('../assets/event/hadang.jpg')}
+              style={styles.cardImage}
+            />
+            {revealed1 && (
+              <View style={styles.cardOverlay}>
+                <Text style={styles.cardTitle}>Hadang Championship</Text>
+                <Text style={styles.cardDate}>Oct 12, 2026</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-        {/* Card 2 */}
-        <TouchableOpacity
-          style={styles.card}
-          activeOpacity={0.9}
-          onPress={() => setRevealed2((prev) => !prev)}
-        >
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=600' }}
-            style={styles.cardImage}
-          />
-          {revealed2 && (
-            <BlurView intensity={60} tint="dark" style={styles.blurOverlay}>
-              <Text style={styles.cardTitle}>Palengke Bazaar</Text>
-              <Text style={styles.cardDate}>Oct 15, 2026</Text>
-            </BlurView>
-          )}
-        </TouchableOpacity>
+          {/* Card 2 */}
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => setRevealed2((prev) => !prev)}
+          >
+            <Image
+              source={require('../assets/event/hadang.jpg')}
+              style={styles.cardImage}
+            />
+            {revealed2 && (
+              <View style={styles.cardOverlay}>
+                <Text style={styles.cardTitle}>Palengke Bazaar</Text>
+                <Text style={styles.cardDate}>Oct 15, 2026</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-        {/* Card 3 */}
-        <TouchableOpacity
-          style={styles.card}
-          activeOpacity={0.9}
-          onPress={() => setRevealed3((prev) => !prev)}
-        >
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600' }}
-            style={styles.cardImage}
-          />
-          {revealed3 && (
-            <BlurView intensity={60} tint="dark" style={styles.blurOverlay}>
-              <Text style={styles.cardTitle}>Live Music Night</Text>
-              <Text style={styles.cardDate}>Oct 18, 2026</Text>
-            </BlurView>
-          )}
-        </TouchableOpacity>
+          {/* Card 3 */}
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => setRevealed3((prev) => !prev)}
+          >
+            <Image
+              source={require('../assets/event/Hidden.jpg')}
+              style={styles.cardImage}
+            />
+            {revealed3 && (
+              <View style={styles.cardOverlay}>
+                <Text style={styles.cardTitle}>Live Music Night</Text>
+                <Text style={styles.cardDate}>Oct 18, 2026</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-        {/* Card 4 */}
-        <TouchableOpacity
-          style={styles.card}
-          activeOpacity={0.9}
-          onPress={() => setRevealed4((prev) => !prev)}
-        >
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=600' }}
-            style={styles.cardImage}
-          />
-          {revealed4 && (
-            <BlurView intensity={60} tint="dark" style={styles.blurOverlay}>
-              <Text style={styles.cardTitle}>Talent Fair</Text>
-              <Text style={styles.cardDate}>Oct 20, 2026</Text>
-            </BlurView>
-          )}
-        </TouchableOpacity>
+          {/* Card 4 */}
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => setRevealed4((prev) => !prev)}
+          >
+            <Image
+              source={require('../assets/event/Hidden.jpg')}
+              style={styles.cardImage}
+            />
+            {revealed4 && (
+              <View style={styles.cardOverlay}>
+                <Text style={styles.cardTitle}>Talent Fair</Text>
+                <Text style={styles.cardDate}>Oct 20, 2026</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-        {/* Card 5 */}
-        <TouchableOpacity
-          style={styles.card}
-          activeOpacity={0.9}
-          onPress={() => setRevealed5((prev) => !prev)}
-        >
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1517649763962-0c623066013b?w=600' }}
-            style={styles.cardImage}
-          />
-          {revealed5 && (
-            <BlurView intensity={60} tint="dark" style={styles.blurOverlay}>
-              <Text style={styles.cardTitle}>Match Night</Text>
-              <Text style={styles.cardDate}>Oct 22, 2026</Text>
-            </BlurView>
-          )}
-        </TouchableOpacity>
+          {/* Card 5 */}
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => setRevealed5((prev) => !prev)}
+          >
+            <Image
+              source={require('../assets/event/match.jpg')}
+              style={styles.cardImage}
+            />
+            {revealed5 && (
+              <View style={styles.cardOverlay}>
+                <Text style={styles.cardTitle}>Matcha Night</Text>
+                <Text style={styles.cardDate}>Oct 22, 2026</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-        {/* Card 6 */}
-        <TouchableOpacity
-          style={styles.card}
-          activeOpacity={0.9}
-          onPress={() => setRevealed6((prev) => !prev)}
-        >
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=600' }}
-            style={styles.cardImage}
-          />
-          {revealed6 && (
-            <BlurView intensity={60} tint="dark" style={styles.blurOverlay}>
-              <Text style={styles.cardTitle}>Food Festival</Text>
-              <Text style={styles.cardDate}>Oct 25, 2026</Text>
-            </BlurView>
-          )}
-        </TouchableOpacity>
+          {/* Card 6 */}
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => setRevealed6((prev) => !prev)}
+          >
+            <Image
+              source={require('../assets/event/Palengke.jpg')}
+              style={styles.cardImage}
+            />
+            {revealed6 && (
+              <View style={styles.cardOverlay}>
+                <Text style={styles.cardTitle}>Food Festival</Text>
+                <Text style={styles.cardDate}>Oct 25, 2026</Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.card}
-          activeOpacity={0.9}
-          onPress={() => setRevealed7((prev) => !prev)}
-        >
-          <Image
-            source={{ uri: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=600' }}
-            style={styles.cardImage}
-          />
-          {revealed7 && (
-            <BlurView intensity={60} tint="dark" style={styles.blurOverlay}>
-              <Text style={styles.cardTitle}>Food Festival</Text>
-              <Text style={styles.cardDate}>Oct 25, 2026</Text>
-            </BlurView>
-          )}
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+          {/* Card 7 */}
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => setRevealed7((prev) => !prev)}
+          >
+            <Image
+              source={require('../assets/event/Formal.jpg')}
+              style={styles.cardImage}
+            />
+            {revealed7 && (
+              <View style={styles.cardOverlay}>
+                <Text style={styles.cardTitle}>All Souls Celebration</Text>
+                <Text style={styles.cardDate}>Nov 1, 2026</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Card 8 */}
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => setRevealed8((prev) => !prev)}
+          >
+            <Image
+              source={require('../assets/event/hadang.jpg')}
+              style={styles.cardImage}
+            />
+            {revealed8 && (
+              <View style={styles.cardOverlay}>
+                <Text style={styles.cardTitle}>Food Festival</Text>
+                <Text style={styles.cardDate}>Oct 25, 2026</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Card 9 */}
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => setRevealed9((prev) => !prev)}
+          >
+            <Image
+              source={require('../assets/event/hadang.jpg')}
+              style={styles.cardImage}
+            />
+            {revealed9 && (
+              <View style={styles.cardOverlay}>
+                <Text style={styles.cardTitle}>Food Festival</Text>
+                <Text style={styles.cardDate}>Oct 25, 2026</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
+          {/* Card 10 */}
+          <TouchableOpacity
+            style={styles.card}
+            activeOpacity={0.9}
+            onPress={() => setRevealed10((prev) => !prev)}
+          >
+            <Image
+              source={require('../assets/event/hadang.jpg')}
+              style={styles.cardImage}
+            />
+            {revealed10 && (
+              <View style={styles.cardOverlay}>
+                <Text style={styles.cardTitle}>Food Festival</Text>
+                <Text style={styles.cardDate}>Oct 25, 2026</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -158,13 +220,15 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
-  contentContainer: {
-    padding: 16,
-    paddingTop: 40,
-    paddingBottom: 100, // clearance for the floating tab bar
-  },
   header: {
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 40,
+    paddingBottom: 16,
+    backgroundColor: '#ffffff',
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 100, // clearance for the floating tab bar
   },
   welcomeText: {
     fontSize: 20,
@@ -182,7 +246,7 @@ const styles = StyleSheet.create({
     width: '48%',
     height: 150,
     borderRadius: 16,
-    overflow: 'hidden', // clips the image + blur to the card's rounded corners
+    overflow: 'hidden', // clips the image + overlay to the card's rounded corners
     backgroundColor: '#f0f0f0',
     marginBottom: 12,
     elevation: 2,
@@ -196,14 +260,15 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
-  // Sits on top of the image once a card is tapped — BlurView handles the
-  // actual blur, this just also centers the title/date text over it.
-  blurOverlay: {
-   position: 'absolute',
+  // Sits on top of the image once a card is tapped — semi-transparent dark
+  // background ensures crisp text contrast and readability without expo-blur.
+  cardOverlay: {
+    position: 'absolute',
+    top: 0,
     left: 0,
     right: 0,
-    top: 0,
     bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.73)',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 8,

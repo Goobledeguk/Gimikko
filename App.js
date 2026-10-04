@@ -1,3 +1,25 @@
+// =============================================================================
+// App.js — the ROOT of the entire app. Every screen, every tab, every piece
+// of UI eventually renders underneath what's returned here.
+//
+// Responsibilities, top to bottom:
+//   1. Load custom fonts (Poppins) before showing anything real.
+//   2. Hide Android's system navigation bar (home/back/recents).
+//   3. Hide the top status bar entirely.
+//   4. Set up gesture handling (required by the carousel/animations) and
+//      React Navigation's container, then hand off to RootTabs.jsx for
+//      everything screen/tab related.
+//
+// NOTE on system bars: react-native-edge-to-edge's <SystemBars> is the
+// officially "correct" modern replacement for hiding status/nav bars, but
+// it ships native code that ISN'T bundled into plain Expo Go — it only
+// works in a custom dev client or EAS build. Since this project is being
+// tested through Expo Go, we're back to expo-status-bar + expo-navigation-bar
+// (which ARE bundled in Expo Go), while specifically avoiding
+// setBehaviorAsync() — that one function is deprecated/removed under
+// Android's edge-to-edge enforcement and throws "undefined is not a
+// function" on real devices. setVisibilityAsync() is still functional.
+// =============================================================================
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -17,17 +39,17 @@ export default function App() {
     'Poppins-Regular': require('./assets/fonts/Poppins-Regular.ttf'),
   });
 
-  // The Android nav bar (home/back/recents) is a completely separate API
-  // from the top StatusBar — it doesn't exist at all on iOS, so this is
-  // guarded to only run on Android (calling it on iOS would just throw,
-  // same as the "only available on Android" warning you saw earlier).
+  // Only calls setVisibilityAsync — NOT setBehaviorAsync, which is the one
+  // that crashes. Wrapped in try/catch as a safety net in case this
+  // function also becomes unsupported on some future Android version —
+  // worst case the nav bar just stays visible, instead of crashing the app.
   useEffect(() => {
     if (Platform.OS === 'android') {
-      NavigationBar.setVisibilityAsync('hidden');
-      // 'overlay-swipe' lets the user swipe up from the bottom edge to
-      // briefly reveal the nav bar again (so they're never fully locked
-      // out of Home/Back) instead of it being permanently unreachable.
-      NavigationBar.setBehaviorAsync('overlay-swipe');
+      try {
+        NavigationBar.setVisibilityAsync('hidden');
+      } catch (error) {
+        console.warn('NavigationBar.setVisibilityAsync unsupported:', error);
+      }
     }
   }, []);
 
