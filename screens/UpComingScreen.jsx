@@ -188,7 +188,7 @@ position: 'absolute',
   },
   typeTag: {
     alignSelf: 'flex-start',
-    backgroundColor: '#05dd00',
+    backgroundColor: '#00ff00',
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 2,

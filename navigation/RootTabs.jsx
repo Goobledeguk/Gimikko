@@ -51,7 +51,7 @@ export default function RootTabs() {
         }}
       />
       <Tab.Screen
-        name="Calendar"
+        name="UpComing"
         component={FadeUpComing}
         options={{
           tabBarIcon: ({ color, size }) => <Ionicons name="calendar" size={size} color={color} />,
@@ -61,7 +61,7 @@ export default function RootTabs() {
         name="Discover"
         component={FadeDiscover}
         options={{
-          tabBarIcon: ({ color, size }) => <Ionicons name="star" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="search" size={size} color={color} />,
         }}
       />
       <Tab.Screen

@@ -8,11 +8,6 @@
 // =============================================================================
 import { useState } from 'react';
 import { StyleSheet, Text, View, Image, ScrollView } from 'react-native';
-// gesture-handler's ScrollView (NOT the plain React Native one) specifically
-// for the horizontal row below — since the app is already wrapped in
-// GestureHandlerRootView (see App.js), using its ScrollView for a scroll
-// view nested inside another one lets both negotiate the gesture properly,
-// which plain ScrollView + nestedScrollEnabled doesn't always manage.
 import { ScrollView as HorizontalScrollView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import ParallaxCarousel from '../components/Carousel-Parallax.jsx';
