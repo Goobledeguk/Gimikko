@@ -1,216 +1,178 @@
-import { useState } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image } from 'react-native';
+// =============================================================================
+// DiscoverScreen.jsx — the "Discover" tab. Now DYNAMIC: events are loaded
+// from Supabase, shown in a 2-column grid, and the "+" button in the header
+// opens a form (CreateEventModal) that saves a new event to the database.
+//
+// Flow:  mount -> fetchEvents() -> grid  |  "+" -> form -> createEvent()
+//        -> onCreated -> fetchEvents() again -> the new event appears.
+// =============================================================================
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+// BlurTargetView is how expo-blur (SDK 55+) knows WHAT to blur on Android.
+import { BlurView, BlurTargetView } from 'expo-blur';
+import { Ionicons } from '@expo/vector-icons';
+import CreateEventModal from '../components/CreateEventModal.jsx';
+import { fetchEvents } from '../services/events';
+import { formatDate } from '../utils/date';
 
-// Pure UI prototype: 2-column image grid, no array/data file — each card
-// is its own block with its own useState toggle. Tapping a card reveals
-// its title + date on top of a dark semi-transparent cardOverlay; tapping again hides them.
+// -----------------------------------------------------------------------
+// EventCard — one grid cell. It's its own component only because each card
+// needs its own ref (blurTargetRef) for the Android blur, and hooks can't be
+// called inside a list's renderItem directly.
+// Tapping toggles `revealed`, which shows a blur layer with title + date.
+// -----------------------------------------------------------------------
+function EventCard({ event, revealed, onPress }) {
+  const blurTargetRef = useRef(null);
+
+  return (
+    <TouchableOpacity style={styles.card} activeOpacity={0.9} onPress={onPress}>
+      {/* The thing being blurred must live inside a BlurTargetView */}
+      <BlurTargetView ref={blurTargetRef} style={StyleSheet.absoluteFill}>
+        <Image source={{ uri: event.image_url }} style={styles.cardImage} />
+      </BlurTargetView>
+
+      {revealed && (
+        <BlurView
+          blurTarget={blurTargetRef}
+          blurMethod="dimezisBlurView" // real blur on Android (default is just a tint)
+          intensity={60}
+          tint="dark"
+          style={styles.blurOverlay}
+        >
+          {event.category && <Text style={styles.cardTag}>{event.category.label}</Text>}
+          <Text style={styles.cardTitle} numberOfLines={3}>
+            {event.name}
+          </Text>
+          <Text style={styles.cardDate}>{formatDate(event.event_date)}</Text>
+        </BlurView>
+      )}
+    </TouchableOpacity>
+  );
+}
 
 export default function DiscoverScreen() {
-  // One boolean per card — since nothing is looped/mapped, each card
-  // needs its own piece of state to track whether IT is revealed.
-  const [revealed1, setRevealed1] = useState(false);
-  const [revealed2, setRevealed2] = useState(false);
-  const [revealed3, setRevealed3] = useState(false);
-  const [revealed4, setRevealed4] = useState(false);
-  const [revealed5, setRevealed5] = useState(false);
-  const [revealed6, setRevealed6] = useState(false);
-  const [revealed7, setRevealed7] = useState(false);
-  const [revealed8, setRevealed8] = useState(false);
-  const [revealed9, setRevealed9] = useState(false);
-  const [revealed10, setRevealed10] = useState(false);
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true); // first load only
+  const [refreshing, setRefreshing] = useState(false); // pull-to-refresh
+  const [error, setError] = useState(null);
+  const [revealedId, setRevealedId] = useState(null); // which card is showing its blur (one at a time)
+  const [formVisible, setFormVisible] = useState(false);
+
+  // Fetches the list; on failure keeps whatever was already on screen.
+  const loadEvents = useCallback(async () => {
+    try {
+      setError(null);
+      setEvents(await fetchEvents());
+    } catch (e) {
+      setError(e.message || 'Unknown error');
+    }
+  }, []);
+
+  // Runs once when the screen first mounts
+  useEffect(() => {
+    loadEvents().finally(() => setLoading(false));
+  }, [loadEvents]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadEvents();
+    setRefreshing(false);
+  };
+
+  const handleRetry = () => {
+    setLoading(true);
+    loadEvents().finally(() => setLoading(false));
+  };
+
+  // Called by the form after a successful save
+  const handleCreated = async () => {
+    setFormVisible(false);
+    await loadEvents();
+  };
+
+  const renderBody = () => {
+    if (loading) {
+      return (
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#05dd00" />
+        </View>
+      );
+    }
+
+    // Only show the full-screen error when there's nothing to show instead
+    if (error && events.length === 0) {
+      return (
+        <View style={styles.centered}>
+          <Ionicons name="cloud-offline-outline" size={44} color="#bbb" />
+          <Text style={styles.stateTitle}>Couldn't load events</Text>
+          <Text style={styles.stateText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+            <Text style={styles.retryText}>Try again</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <FlatList
+        data={events}
+        keyExtractor={(event) => event.id}
+        numColumns={2}
+        columnWrapperStyle={styles.row}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        refreshing={refreshing}
+        onRefresh={handleRefresh}
+        extraData={revealedId} // makes the list re-render when a card is tapped
+        renderItem={({ item }) => (
+          <EventCard
+            event={item}
+            revealed={revealedId === item.id}
+            // tap again on the open card to close it; tap another to switch
+            onPress={() => setRevealedId((prev) => (prev === item.id ? null : item.id))}
+          />
+        )}
+        ListEmptyComponent={
+          <View style={styles.centered}>
+            <Ionicons name="calendar-outline" size={44} color="#bbb" />
+            <Text style={styles.stateTitle}>No events yet</Text>
+            <Text style={styles.stateText}>Tap the + button to add the first one.</Text>
+          </View>
+        }
+      />
+    );
+  };
 
   return (
     <View style={styles.container}>
-      {/* Header lives OUTSIDE the ScrollView below, as a plain sibling —
-          same pattern as CalendarScreen's header. Since it's never placed
-          inside the scrollable area, scrolling the grid can't move it. */}
+      {/* Header is a sibling ABOVE the list (not inside it), so it stays put
+          while the grid scrolls. The + button sits inline on the right. */}
       <View style={styles.header}>
         <Text style={styles.welcomeText}>Discover Events</Text>
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setFormVisible(true)}
+          accessibilityLabel="Add event"
+        >
+          <Ionicons name="add" size={24} color="#ffffff" />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.grid}>
-          {/* Card 1 */}
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.9}
-            onPress={() => setRevealed1((prev) => !prev)}
-          >
-            <Image
-              source={require('../assets/event/hadang.jpg')}
-              style={styles.cardImage}
-            />
-            {revealed1 && (
-              <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>Hadang Championship</Text>
-                <Text style={styles.cardDate}>Oct 12, 2026</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+      {renderBody()}
 
-          {/* Card 2 */}
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.9}
-            onPress={() => setRevealed2((prev) => !prev)}
-          >
-            <Image
-              source={require('../assets/event/Market.jpg')}
-              style={styles.cardImage}
-            />
-            {revealed2 && (
-              <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>Palengke Bazaar</Text>
-                <Text style={styles.cardDate}>Oct 15, 2026</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Card 3 */}
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.9}
-            onPress={() => setRevealed3((prev) => !prev)}
-          >
-            <Image
-              source={require('../assets/event/Hidden.jpg')}
-              style={styles.cardImage}
-            />
-            {revealed3 && (
-              <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>Live Music Night</Text>
-                <Text style={styles.cardDate}>Oct 18, 2026</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Card 4 */}
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.9}
-            onPress={() => setRevealed4((prev) => !prev)}
-          >
-            <Image
-              source={require('../assets/event/pickle.jpg')}
-              style={styles.cardImage}
-            />
-            {revealed4 && (
-              <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>The Kitchen: Tournament</Text>
-                <Text style={styles.cardDate}>Oct 20, 2026</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Card 5 */}
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.9}
-            onPress={() => setRevealed5((prev) => !prev)}
-          >
-            <Image
-              source={require('../assets/event/match.jpg')}
-              style={styles.cardImage}
-            />
-            {revealed5 && (
-              <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>Matcha Night</Text>
-                <Text style={styles.cardDate}>Oct 22, 2026</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Card 6 */}
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.9}
-            onPress={() => setRevealed6((prev) => !prev)}
-          >
-            <Image
-              source={require('../assets/event/Palengke.jpg')}
-              style={styles.cardImage}
-            />
-            {revealed6 && (
-              <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>Food Festival</Text>
-                <Text style={styles.cardDate}>Oct 25, 2026</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Card 7 */}
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.9}
-            onPress={() => setRevealed7((prev) => !prev)}
-          >
-            <Image
-              source={require('../assets/event/Formal.jpg')}
-              style={styles.cardImage}
-            />
-            {revealed7 && (
-              <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>Remembrance Celebration</Text>
-                <Text style={styles.cardDate}>Nov 1, 2026</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Card 8 */}
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.9}
-            onPress={() => setRevealed8((prev) => !prev)}
-          >
-            <Image
-              source={require('../assets/event/Hackathon.jpg')}
-              style={styles.cardImage}
-            />
-            {revealed8 && (
-              <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>Regional Hackathon</Text>
-                <Text style={styles.cardDate}>Nov 15, 2026</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Card 9 */}
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.9}
-            onPress={() => setRevealed9((prev) => !prev)}
-          >
-            <Image
-              source={require('../assets/event/run.jpg')}
-              style={styles.cardImage}
-            />
-            {revealed9 && (
-              <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>Fun Run: 25k</Text>
-                <Text style={styles.cardDate}>Nov 22, 2026</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-
-          {/* Card 10 */}
-          <TouchableOpacity
-            style={styles.card}
-            activeOpacity={0.9}
-            onPress={() => setRevealed10((prev) => !prev)}
-          >
-            <Image
-              source={require('../assets/event/Ponds.jpg')}
-              style={styles.cardImage}
-            />
-            {revealed10 && (
-              <View style={styles.cardOverlay}>
-                <Text style={styles.cardTitle}>Ponds Sponsorship</Text>
-                <Text style={styles.cardDate}>Nov 25, 2026</Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+      <CreateEventModal
+        visible={formVisible}
+        onClose={() => setFormVisible(false)}
+        onCreated={handleCreated}
+      />
     </View>
   );
 }
@@ -220,33 +182,46 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#ffffff',
   },
+
+  // Title on the left, + button on the right, vertically centered together
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 40,
     paddingBottom: 16,
     backgroundColor: '#ffffff',
-  },
-  scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 100, // clearance for the floating tab bar
   },
   welcomeText: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#00cc00',
   },
+  addButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#05dd00',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 
-  // 2-column grid: wrap cards onto new rows, split them with space-between
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 100, // clearance for the floating tab bar
+    flexGrow: 1,
+  },
+  // Two cards per row; space-between keeps a lone last card at 48% width
+  row: {
     justifyContent: 'space-between',
   },
+
   card: {
     width: '48%',
     height: 150,
     borderRadius: 16,
-    overflow: 'hidden', // clips the image + overlay to the card's rounded corners
+    overflow: 'hidden', // clips the image + blur to the rounded corners
     backgroundColor: '#f0f0f0',
     marginBottom: 12,
     elevation: 2,
@@ -260,18 +235,18 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
-  // Sits on top of the image once a card is tapped — semi-transparent dark
-  // background ensures crisp text contrast and readability without expo-blur.
-  cardOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.73)',
+  blurOverlay: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 8,
+  },
+  cardTag: {
+    color: '#05dd00',
+    fontSize: 10,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    marginBottom: 4,
   },
   cardTitle: {
     color: '#ffffff',
@@ -284,5 +259,37 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 4,
     textAlign: 'center',
+  },
+
+  // Loading / error / empty states
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingTop: 60,
+    gap: 6,
+  },
+  stateTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#444',
+    marginTop: 6,
+  },
+  stateText: {
+    fontSize: 13,
+    color: '#888',
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 12,
+    backgroundColor: '#05dd00',
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    borderRadius: 20,
+  },
+  retryText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
   },
 });
