@@ -1,4 +1,12 @@
-import React, { useState } from "react";
+// =============================================================================
+// ProfileScreen.jsx — the "Profile" tab. LIVE DATA for the logged-in person:
+//   name, @username, locality, bio  <- their profile (edit with the pencil)
+//   Saved / Joined / Posted numbers <- the profile_stats view
+//   My Saved Gimik                  <- the events they bookmarked in Discover
+// Plus Settings and About popups (static info) and a Log out button.
+// Reloads each time the tab gains focus, and supports pull-to-refresh.
+// =============================================================================
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -6,17 +14,84 @@ import {
   TouchableOpacity,
   ScrollView,
   Modal,
+  RefreshControl,
+  ActivityIndicator,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
+import EditProfileModal from "../components/EditProfileModal";
+import { useAuth } from "../context/AuthContext.jsx";
+import { fetchMySavedEvents, fetchMyStats } from "../services/account";
+import { formatDate } from "../utils/date";
+
+// Which icon a saved event gets, by its category's key (calendar if it has none)
+const CATEGORY_ICONS = {
+  sport: "basketball",
+  market: "storefront",
+  music: "musical-notes",
+};
 
 // This function creates the Profile Screen of our application.
-export default function ProfileScreen({ navigation }) {
-  // One boolean per popup — each controls whether its own <Modal> is
-  // visible. This is a pure UI prototype: tapping a row just flips one of
-  // these to true, there's no real editing/settings logic behind any of it.
+export default function ProfileScreen() {
+  const { profile, refreshProfile, signOut } = useAuth();
+
+  // Live data
+  const [stats, setStats] = useState(null);
+  const [savedEvents, setSavedEvents] = useState([]);
+  const [loading, setLoading] = useState(true); // first load only
+  const [refreshing, setRefreshing] = useState(false); // pull-to-refresh
+  const [error, setError] = useState("");
+
+  // One boolean per popup — each controls whether its own <Modal> is visible.
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [showSettingsPopup, setShowSettingsPopup] = useState(false);
   const [showAboutPopup, setShowAboutPopup] = useState(false);
+
+  // Loads the numbers and the saved list together. On failure, whatever was
+  // already on screen stays and a message appears.
+  const loadData = useCallback(async () => {
+    try {
+      setError("");
+      const [myStats, saved] = await Promise.all([
+        fetchMyStats(profile.id),
+        fetchMySavedEvents(profile.id),
+      ]);
+      setStats(myStats);
+      setSavedEvents(saved);
+    } catch (e) {
+      setError(e.message || "Could not load your profile data.");
+    } finally {
+      setLoading(false);
+    }
+  }, [profile.id]);
+
+  // Runs each time this tab becomes active
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([loadData(), refreshProfile()]);
+    setRefreshing(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(); // App.js notices and swaps to the login screen
+    } catch (e) {
+      setError(e.message || "Could not log out.");
+    }
+  };
+
+  const localityText = profile.location
+    ? `${profile.location.name}, ${profile.location.province}`
+    : "No locality set";
+
+  // Shows "–" until the numbers have arrived
+  const statValue = (key) => (stats ? stats[key] : "–");
 
   return (
     <View style={styles.container}>
@@ -25,6 +100,9 @@ export default function ProfileScreen({ navigation }) {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} colors={["#0BD318"]} />
+        }
       >
 
         {/* Profile picture placeholder */}
@@ -34,7 +112,7 @@ export default function ProfileScreen({ navigation }) {
 
         {/* Name + inline edit icon, side by side in one row */}
         <View style={styles.nameRow}>
-          <Text style={styles.name}>Nigel</Text>
+          <Text style={styles.name}>{profile.display_name}</Text>
           <TouchableOpacity
             style={styles.editIconButton}
             onPress={() => setShowEditPopup(true)}
@@ -42,37 +120,36 @@ export default function ProfileScreen({ navigation }) {
             <Ionicons name="create-outline" size={20} color="#0BD318" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.username}>@nigel_gimik</Text>
+        <Text style={styles.username}>@{profile.username}</Text>
 
         {/* User's location */}
         <View style={styles.locationContainer}>
           <Ionicons name="location" size={20} color="#0BD318" />
-          <Text style={styles.location}>Calbayog City, Samar</Text>
+          <Text style={styles.location}>{localityText}</Text>
         </View>
 
         {/* Short description or bio of the user */}
         <Text style={styles.bio}>
-          Always looking for new gimik and local events.
+          {profile.bio || "No bio yet — tap the pencil to add one."}
         </Text>
+
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         {/* Statistics section showing Saved, Joined, and Posted events */}
         <View style={styles.statsContainer}>
 
-          {/* Saved events count */}
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>12</Text>
+            <Text style={styles.statNumber}>{statValue("saved_count")}</Text>
             <Text style={styles.statLabel}>Saved</Text>
           </View>
 
-          {/* Joined events count */}
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>5</Text>
+            <Text style={styles.statNumber}>{statValue("joined_count")}</Text>
             <Text style={styles.statLabel}>Joined</Text>
           </View>
 
-          {/* Posted events count */}
           <View style={styles.statBox}>
-            <Text style={styles.statNumber}>3</Text>
+            <Text style={styles.statNumber}>{statValue("posted_count")}</Text>
             <Text style={styles.statLabel}>Posted</Text>
           </View>
 
@@ -82,63 +159,41 @@ export default function ProfileScreen({ navigation }) {
         {/* Section title for saved events */}
         <Text style={styles.sectionTitle}>My Saved Gimik</Text>
 
-        {/* First saved event */}
-        <TouchableOpacity style={styles.eventCard}>
+        {loading ? (
+          <ActivityIndicator color="#0BD318" style={styles.savedLoading} />
+        ) : savedEvents.length === 0 ? (
+          <Text style={styles.emptyText}>
+            Nothing saved yet. Tap an event in Discover, then the bookmark.
+          </Text>
+        ) : (
+          savedEvents.map((event) => (
+            <View key={event.id} style={styles.eventCard}>
 
-          {/* Icon representing the event */}
-          <View style={styles.eventIcon}>
-            <Ionicons name="musical-notes" size={28} color="#0BD318" />
-          </View>
+              {/* Icon representing the event's category */}
+              <View style={styles.eventIcon}>
+                <Ionicons
+                  name={CATEGORY_ICONS[event.category?.key] ?? "calendar"}
+                  size={28}
+                  color="#0BD318"
+                />
+              </View>
 
-          {/* Event information */}
-          <View style={styles.eventInfo}>
-            <Text style={styles.eventTitle}>Live Music Night</Text>
+              {/* Event information */}
+              <View style={styles.eventInfo}>
+                <Text style={styles.eventTitle} numberOfLines={1}>{event.name}</Text>
+                <Text style={styles.eventDetails}>
+                  📅 {formatDate(event.event_date)}
+                </Text>
+                <Text style={styles.eventLocation}>
+                  📍 {event.location?.name ?? "No locality"}
+                </Text>
+              </View>
 
-            {/* Date and time of the event */}
-            <Text style={styles.eventDetails}>
-              📅 Sept 25 • 9:00 PM
-            </Text>
+            </View>
+          ))
+        )}
 
-            {/* Location of the event */}
-            <Text style={styles.eventLocation}>
-              📍 Local Venue
-            </Text>
-          </View>
-
-          {/* Arrow indicates that the event can be opened */}
-          <Ionicons name="chevron-forward" size={24} color="#999" />
-
-        </TouchableOpacity>
-
-        {/* Second saved event */}
-        <TouchableOpacity style={styles.eventCard}>
-
-          {/* Icon representing an art event */}
-          <View style={styles.eventIcon}>
-            <Ionicons name="color-palette" size={28} color="#0BD318" />
-          </View>
-
-          {/* Event information */}
-          <View style={styles.eventInfo}>
-            <Text style={styles.eventTitle}>Art Exhibit</Text>
-
-            {/* Date and time of the event */}
-            <Text style={styles.eventDetails}>
-              📅 Oct 2 • 6:00 PM
-            </Text>
-
-            {/* Location of the event */}
-            <Text style={styles.eventLocation}>
-              📍 Local Art Gallery
-            </Text>
-          </View>
-
-          {/* Arrow indicates that the event can be opened */}
-          <Ionicons name="chevron-forward" size={24} color="#999" />
-
-        </TouchableOpacity>
-
-        {/* Section title for the two menu rows below */}
+        {/* Section title for the menu rows below */}
         <Text style={styles.sectionTitle}>More</Text>
 
         {/* Settings row — opens the Settings popup */}
@@ -169,44 +224,28 @@ export default function ProfileScreen({ navigation }) {
           <Ionicons name="chevron-forward" size={24} color="#999" />
         </TouchableOpacity>
 
+        {/* Log out row */}
+        <TouchableOpacity style={styles.eventCard} onPress={handleLogout}>
+          <View style={styles.eventIcon}>
+            <Ionicons name="log-out-outline" size={28} color="#0BD318" />
+          </View>
+          <View style={styles.eventInfo}>
+            <Text style={styles.eventTitle}>Log out</Text>
+          </View>
+        </TouchableOpacity>
+
       </ScrollView>
 
-      {/* ------------------------------------------------------------- */}
-      {/* EDIT PROFILE POPUP — shown when the pencil icon beside the name
-          is tapped. Pure prototype: just confirms "updated" visually,
-          no real save/edit logic behind it. */}
-      {/* ------------------------------------------------------------- */}
-      <Modal
-        visible={showEditPopup}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowEditPopup(false)}
-      >
-        <View style={styles.popupOverlay}>
-          <View style={styles.popupCard}>
-            <Ionicons name="checkmark-circle" size={44} color="#0BD318" />
-            <Text style={styles.popupTitle}>Updated Details</Text>
-            <Text style={styles.popupText}>
-              Your profile information has been updated.
-            </Text>
-            <TouchableOpacity
-              style={styles.popupCloseButton}
-              onPress={() => setShowEditPopup(false)}
-            >
-              <Text style={styles.popupCloseText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* EDIT PROFILE — a real form (name, bio, locality) that saves to the database */}
+      <EditProfileModal visible={showEditPopup} onClose={() => setShowEditPopup(false)} />
 
       {/* ------------------------------------------------------------- */}
-      {/* SETTINGS POPUP — three category buttons, typed directly, with
-          NO onPress function attached (per request: visual only). */}
+      {/* SETTINGS POPUP — three category buttons with NO onPress yet. */}
       {/* ------------------------------------------------------------- */}
       <Modal
         visible={showSettingsPopup}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setShowSettingsPopup(false)}
       >
         <View style={styles.popupOverlay}>
@@ -239,14 +278,12 @@ export default function ProfileScreen({ navigation }) {
       </Modal>
 
       {/* ------------------------------------------------------------- */}
-      {/* ABOUT POPUP — each name/handle typed directly (no array/.map —
-          same "hardcode everything" approach used elsewhere in this
-          prototype), centered, with a divider line between entries. */}
+      {/* ABOUT POPUP — the team, centered, with a divider between entries. */}
       {/* ------------------------------------------------------------- */}
       <Modal
         visible={showAboutPopup}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setShowAboutPopup(false)}
       >
         <View style={styles.popupOverlay}>
@@ -294,9 +331,6 @@ export default function ProfileScreen({ navigation }) {
 // ----------------------------------------------------
 // STYLES
 // ----------------------------------------------------
-// StyleSheet is used to control the appearance and layout
-// of the different components in our Profile Screen.
-
 const styles = StyleSheet.create({
 
   // Main container of the screen
@@ -311,21 +345,6 @@ const styles = StyleSheet.create({
     paddingTop: 100,
     paddingBottom: 130,
     paddingHorizontal: 25,
-  },
-
-  // Style for the settings button
-  settingsButton: {
-    position: "absolute",
-    right: 30,
-    top: 45,
-    width: 70,
-    height: 70,
-    borderRadius: 40,
-    backgroundColor: "#BDBDBD",
-    justifyContent: "center",
-    alignItems: "center",
-    zIndex: 10,
-    elevation: 5,
   },
 
   // Circular area used for the profile picture
@@ -393,6 +412,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 
+  // Red message if loading the numbers/list failed
+  errorText: {
+    color: "#d33",
+    fontSize: 13,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+
   // Places the three statistics beside each other
   statsContainer: {
     flexDirection: "row",
@@ -433,7 +460,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  // Style for each saved event card AND the Settings/About menu rows
+  // Spinner / empty message in the saved list
+  savedLoading: {
+    marginVertical: 16,
+  },
+  emptyText: {
+    alignSelf: "flex-start",
+    fontSize: 14,
+    color: "#999",
+    marginBottom: 12,
+  },
+
+  // Style for each saved event card AND the Settings/About/Log out rows
   // (same visual treatment, reused rather than duplicated)
   eventCard: {
     flexDirection: "row",
@@ -468,14 +506,14 @@ const styles = StyleSheet.create({
     color: "#333",
   },
 
-  // Style for the event date and time
+  // Style for the event date
   eventDetails: {
     fontSize: 13,
     color: "#777",
     marginTop: 4,
   },
 
-  // Style for the event location
+  // Style for the event locality
   eventLocation: {
     fontSize: 12,
     color: "#888",
@@ -483,7 +521,6 @@ const styles = StyleSheet.create({
   },
 
   // ---- Popup (Modal) shared styles ----
-  // Dark semi-transparent backdrop behind every popup
   popupOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.45)",
@@ -491,7 +528,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 24,
   },
-  // The white rounded card itself, centered on screen
   popupCard: {
     width: "100%",
     maxHeight: "75%",
@@ -506,12 +542,6 @@ const styles = StyleSheet.create({
     color: "#222",
     marginTop: 8,
     marginBottom: 10,
-  },
-  popupText: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-    marginBottom: 20,
   },
   popupCloseButton: {
     backgroundColor: "#0BD318",
@@ -569,39 +599,5 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 16,
     marginBottom: 4,
-  },
-
-  // Style for the bottom navigation bar
-  bottomNav: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
-    height: 95,
-    backgroundColor: "white",
-    borderRadius: 50,
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    elevation: 10,
-
-    // Shadow settings for Android/iOS
-    shadowColor: "#000",
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-  },
-
-  // Green line that indicates the current active page
-  activeLine: {
-    width: 30,
-    height: 5,
-    borderRadius: 5,
-    backgroundColor: "#0BD318",
-    marginTop: 3,
-    alignSelf: "center",
   },
 });

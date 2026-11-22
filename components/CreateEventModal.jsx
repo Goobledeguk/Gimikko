@@ -1,28 +1,21 @@
 // =============================================================================
-// CreateEventModal.jsx — the "new event" form, shown as a bottom sheet.
-// Asks for the three things an event needs: name, date, and a cover image.
+// components/CreateEventModal.jsx — the "new event" form, shown as a bottom
+// sheet. Asks for what an event needs: name, date, locality, and a cover image.
 // It owns all of the form's own state; the screen that opens it only has to
 // pass three props:
 //   visible    — true/false, whether the sheet is showing
 //   onClose    — called when the user cancels
 //   onCreated  — called after the event was saved (screen then refreshes its list)
+// The event is saved under the logged-in person automatically (the database
+// fills that in), so the form never asks who is posting.
 // =============================================================================
 import { useState } from 'react';
-import {
-  ActivityIndicator,
-  Image,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import BottomSheet from './BottomSheet';
+import LocalityPicker from './LocalityPicker';
+import { form } from './formStyles';
 import { createEvent } from '../services/events';
 
 // True only for real calendar dates written as YYYY-MM-DD. The round-trip
@@ -51,6 +44,7 @@ function formatDateInput(text) {
 export default function CreateEventModal({ visible, onClose, onCreated }) {
   const [name, setName] = useState('');
   const [dateText, setDateText] = useState('');
+  const [locationId, setLocationId] = useState(null); // chosen locality (its id in the locations table)
   const [asset, setAsset] = useState(null); // the picked image (uri + base64 + mimeType)
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -58,6 +52,7 @@ export default function CreateEventModal({ visible, onClose, onCreated }) {
   const resetForm = () => {
     setName('');
     setDateText('');
+    setLocationId(null);
     setAsset(null);
     setError('');
   };
@@ -89,14 +84,15 @@ export default function CreateEventModal({ visible, onClose, onCreated }) {
     setError('');
 
     // Validate on the device first so the user gets instant, specific feedback.
-    // (The database has matching CHECK constraints as a safety net.)
+    // (The database has matching constraints as a safety net.)
     if (!name.trim()) return setError('Please enter an event name.');
     if (!isRealDate(dateText)) return setError('Enter a valid date as YYYY-MM-DD.');
+    if (!locationId) return setError('Please choose a locality.');
     if (!asset) return setError('Please choose an event image.');
 
     setSubmitting(true);
     try {
-      await createEvent({ name, eventDate: dateText, asset });
+      await createEvent({ name, eventDate: dateText, locationId, asset });
       resetForm();
       onCreated();
     } catch (e) {
@@ -107,115 +103,66 @@ export default function CreateEventModal({ visible, onClose, onCreated }) {
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        style={styles.overlay}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <View style={styles.sheet}>
-          <View style={styles.sheetHeader}>
-            <Text style={styles.sheetTitle}>New Event</Text>
-            <TouchableOpacity onPress={handleClose} hitSlop={10}>
-              <Ionicons name="close" size={24} color="#555" />
-            </TouchableOpacity>
+    <BottomSheet visible={visible} title="New Event" onClose={handleClose}>
+      <Text style={form.label}>Event Name</Text>
+      <TextInput
+        style={form.input}
+        value={name}
+        onChangeText={setName}
+        placeholder="e.g. Sunday Palengke Bazaar"
+        placeholderTextColor="#aaa"
+        maxLength={80}
+      />
+
+      <Text style={form.label}>Event Date</Text>
+      <TextInput
+        style={form.input}
+        value={dateText}
+        onChangeText={(text) => setDateText(formatDateInput(text))}
+        placeholder="YYYY-MM-DD"
+        placeholderTextColor="#aaa"
+        keyboardType="number-pad"
+      />
+
+      <Text style={form.label}>Locality</Text>
+      <LocalityPicker
+        value={locationId}
+        onChange={(id) => {
+          setLocationId(id);
+          setError('');
+        }}
+      />
+
+      <Text style={form.label}>Event Image</Text>
+      <TouchableOpacity style={styles.imageBox} onPress={pickImage} activeOpacity={0.8}>
+        {asset ? (
+          <Image source={{ uri: asset.uri }} style={styles.preview} />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <Ionicons name="image-outline" size={34} color="#05dd00" />
+            <Text style={styles.imagePlaceholderText}>Tap to choose a cover image</Text>
           </View>
+        )}
+      </TouchableOpacity>
 
-          {/* keyboardShouldPersistTaps lets the buttons work with the keyboard open */}
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-            <Text style={styles.label}>Event Name</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="e.g. Sunday Palengke Bazaar"
-              placeholderTextColor="#aaa"
-              maxLength={80}
-            />
+      {error ? <Text style={form.error}>{error}</Text> : null}
 
-            <Text style={styles.label}>Event Date</Text>
-            <TextInput
-              style={styles.input}
-              value={dateText}
-              onChangeText={(text) => setDateText(formatDateInput(text))}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor="#aaa"
-              keyboardType="number-pad"
-            />
-
-            <Text style={styles.label}>Event Image</Text>
-            <TouchableOpacity style={styles.imageBox} onPress={pickImage} activeOpacity={0.8}>
-              {asset ? (
-                <Image source={{ uri: asset.uri }} style={styles.preview} />
-              ) : (
-                <View style={styles.imagePlaceholder}>
-                  <Ionicons name="image-outline" size={34} color="#05dd00" />
-                  <Text style={styles.imagePlaceholderText}>Tap to choose a cover image</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-
-            <TouchableOpacity
-              style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
-              onPress={handleSubmit}
-              disabled={submitting}
-            >
-              {submitting ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text style={styles.submitText}>Create Event</Text>
-              )}
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+      <TouchableOpacity
+        style={[form.button, submitting && form.buttonDisabled]}
+        onPress={handleSubmit}
+        disabled={submitting}
+      >
+        {submitting ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={form.buttonText}>Create Event</Text>
+        )}
+      </TouchableOpacity>
+    </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  // Dim backdrop; justifyContent: 'flex-end' pins the sheet to the bottom
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 28,
-    maxHeight: '90%',
-  },
-  sheetHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  sheetTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#222',
-  },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#444',
-    marginTop: 14,
-    marginBottom: 6,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#222',
-  },
   // Dashed box that shows either the placeholder or the chosen photo
   imageBox: {
     height: 170,
@@ -239,25 +186,5 @@ const styles = StyleSheet.create({
   preview: {
     width: '100%',
     height: '100%',
-  },
-  error: {
-    color: '#d33',
-    fontSize: 13,
-    marginTop: 12,
-  },
-  submitButton: {
-    backgroundColor: '#05dd00',
-    borderRadius: 24,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 18,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 16,
   },
 });

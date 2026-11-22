@@ -11,16 +11,44 @@ import { localTodayISO } from '../utils/date';
 const BUCKET = 'event-images'; // created in supabase/schema.sql
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']; // must match the bucket's allowed types
 
+// The columns every event query asks for. `category:categories(...)` and
+// `location:locations(...)` are JOINs: because events.category_id and
+// events.location_id are foreign keys, Supabase pulls the related row along
+// in the same request. An event comes back shaped like:
+//   { id, name, event_date, image_url,
+//     category: { key, label } | null,  location: { name } | null }
+const EVENT_COLUMNS =
+  'id, name, event_date, image_url, category:categories(key, label), location:locations(name)';
+
 // ---------------------------------------------------------------------------
-// fetchEvents — newest first. The `category:categories(key, label)` part is a
-// JOIN: because events.category_id is a foreign key to categories.id,
-// Supabase can pull the related category row along in the same request.
-// Returns e.g. { id, name, event_date, image_url, category: { key, label } | null }
+// fetchLocations — the list of localities (cities/municipalities), used by
+// the form's locality picker and the Calendar's filter chips. They almost
+// never change, so it's fetched once per app launch and reused. (If you add
+// a locality in the Supabase dashboard, it shows up the next time the app
+// is reopened.)
+// ---------------------------------------------------------------------------
+let cachedLocations = null;
+
+export async function fetchLocations() {
+  if (cachedLocations) return cachedLocations;
+
+  const { data, error } = await supabase
+    .from('locations')
+    .select('id, name, province')
+    .order('name');
+
+  if (error) throw error;
+  cachedLocations = data;
+  return data;
+}
+
+// ---------------------------------------------------------------------------
+// fetchEvents — every event, newest first (the Discover grid).
 // ---------------------------------------------------------------------------
 export async function fetchEvents() {
   const { data, error } = await supabase
     .from('events')
-    .select('id, name, event_date, image_url, category:categories(key, label)')
+    .select(EVENT_COLUMNS)
     .order('created_at', { ascending: false });
 
   if (error) throw error;
@@ -30,16 +58,20 @@ export async function fetchEvents() {
 // ---------------------------------------------------------------------------
 // fetchUpcomingEvents — what the Calendar tab shows: events happening today
 // or later, soonest first, each with its average star rating.
-// Two requests: the events (+ category join), then their rating summaries
-// from the `event_stats` view (the database does the averaging), merged here.
+// Pass { locationId } to see only that locality; leave it out for all.
+// Two requests: the events, then their rating summaries from the
+// `event_stats` view (the database does the averaging), merged here.
 // ---------------------------------------------------------------------------
-export async function fetchUpcomingEvents() {
-  const { data: events, error } = await supabase
+export async function fetchUpcomingEvents({ locationId } = {}) {
+  let query = supabase
     .from('events')
-    .select('id, name, event_date, image_url, category:categories(key, label)')
+    .select(EVENT_COLUMNS)
     .gte('event_date', localTodayISO()) // 'YYYY-MM-DD' strings compare correctly as dates
     .order('event_date', { ascending: true });
 
+  if (locationId) query = query.eq('location_id', locationId);
+
+  const { data: events, error } = await query;
   if (error) throw error;
   if (events.length === 0) return [];
 
@@ -91,15 +123,69 @@ async function uploadEventImage(asset) {
 // Note: if the insert fails after the upload succeeded, the image stays in
 // the bucket (the app is deliberately not allowed to delete files). That's
 // harmless for now; clean-up can be a scheduled job later.
+// Who created the event isn't sent from here: the database fills it in with
+// whoever is logged in (and refuses the insert if nobody is).
 // ---------------------------------------------------------------------------
-export async function createEvent({ name, eventDate, asset }) {
+export async function createEvent({ name, eventDate, locationId, asset }) {
   const imageUrl = await uploadEventImage(asset);
 
   const { error } = await supabase.from('events').insert({
     name: name.trim(),
     event_date: eventDate, // 'YYYY-MM-DD' — maps to the Postgres `date` column
+    location_id: locationId, // foreign key into the locations table
     image_url: imageUrl,
   });
 
   if (error) throw error;
+}
+
+// ---------------------------------------------------------------------------
+// HOME SCREEN FEEDS
+// ---------------------------------------------------------------------------
+
+// "Trending Gimik": upcoming events ranked by how many people joined (most
+// first, soonest as the tie-break). One request — the `event_stats` view
+// already carries the join count, the date and the image.
+export async function fetchTrendingEvents(limit = 5) {
+  const { data, error } = await supabase
+    .from('event_stats')
+    .select('event_id, image_url, join_count')
+    .gte('event_date', localTodayISO())
+    .order('join_count', { ascending: false })
+    .order('event_date', { ascending: true })
+    .limit(limit);
+
+  if (error) throw error;
+  return data;
+}
+
+// "Recommended Gimik": the soonest upcoming events in the person's own
+// locality (or anywhere, if they haven't set one).
+export async function fetchRecommendedEvents(locationId, limit = 5) {
+  let query = supabase
+    .from('events')
+    .select('id, image_url')
+    .gte('event_date', localTodayISO())
+    .order('event_date', { ascending: true })
+    .limit(limit);
+
+  if (locationId) query = query.eq('location_id', locationId);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data;
+}
+
+// "What People Are Saying": the newest reviews that include a comment, each
+// with the reviewer's name and the event it was about (two JOINs).
+export async function fetchLatestReviews(limit = 3) {
+  const { data, error } = await supabase
+    .from('event_reviews')
+    .select('id, rating, comment, reviewer:profiles(display_name), event:events(name)')
+    .not('comment', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) throw error;
+  return data;
 }

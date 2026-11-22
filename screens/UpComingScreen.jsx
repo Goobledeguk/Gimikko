@@ -1,14 +1,19 @@
 // =============================================================================
-// UpComingScreen.jsx — the "Calendar" tab. Now DYNAMIC: shows the events
-// stored in Supabase that are happening today or later, soonest first, each
-// as a long card with the event photo behind its name, date, category tag
-// and average star rating.
+// UpComingScreen.jsx — the "Calendar" tab. DYNAMIC: shows the events stored
+// in Supabase that are happening today or later, soonest first, for the
+// chosen locality. Each is a long card with the event photo behind its
+// name, date, locality, category tag and average star rating.
 //
-// Flow:  tab gains focus -> fetchUpcomingEvents() -> list
-// Reloading on every focus (not just the first) means an event you just
+// A row of chips under the header filters by locality ("All" + one chip per
+// row in the locations table). It starts on the LOGGED-IN PERSON'S OWN
+// locality (from their profile), and follows along if they change it.
+//
+// Flow:  mount -> fetchUpcomingEvents() for their locality
+//        tap a chip -> fetch again for that locality
+// The list also reloads each time the tab gains focus, so an event you just
 // created in the Discover tab is already here when you switch over.
 // =============================================================================
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -18,9 +23,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+// gesture-handler's ScrollView (not React Native's) for the chip row — same
+// choice as Home.jsx's swipeable row, since the app runs inside
+// GestureHandlerRootView and this one reliably receives horizontal swipes.
+import { ScrollView as ChipScrollView } from 'react-native-gesture-handler';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchUpcomingEvents } from '../services/events';
+import { useAuth } from '../context/AuthContext.jsx';
+import { fetchLocations, fetchUpcomingEvents } from '../services/events';
 import { formatDate } from '../utils/date';
 
 // -----------------------------------------------------------------------
@@ -60,6 +70,11 @@ function StarRating({ rating, count }) {
 // text stays readable on any photo, then tag / name / date / stars on top.
 // -----------------------------------------------------------------------
 function EventCard({ event }) {
+  // "Oct 12, 2026  •  Calbayog City" — on one line so the card keeps its height
+  const dateLine = [formatDate(event.event_date), event.location?.name]
+    .filter(Boolean)
+    .join('  •  ');
+
   return (
     <ImageBackground
       source={{ uri: event.image_url }}
@@ -77,7 +92,9 @@ function EventCard({ event }) {
         <Text style={styles.eventName} numberOfLines={1}>
           {event.name}
         </Text>
-        <Text style={styles.eventDate}>{formatDate(event.event_date)}</Text>
+        <Text style={styles.eventDate} numberOfLines={1}>
+          {dateLine}
+        </Text>
         <StarRating rating={event.avg_rating} count={event.review_count} />
       </View>
     </ImageBackground>
@@ -86,23 +103,49 @@ function EventCard({ event }) {
 
 export default function UpComingScreen() {
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true); // spinner only until the first load finishes
+  const [loading, setLoading] = useState(true); // spinner for first load and filter changes
   const [refreshing, setRefreshing] = useState(false); // pull-to-refresh
   const [error, setError] = useState(null);
 
-  // On failure the previous list (if any) stays on screen.
-  const loadEvents = useCallback(async () => {
-    try {
-      setError(null);
-      setEvents(await fetchUpcomingEvents());
-    } catch (e) {
-      setError(e.message || 'Unknown error');
-    } finally {
-      setLoading(false);
-    }
+  const { profile } = useAuth();
+
+  const [locations, setLocations] = useState([]);
+  // Starts on the person's own locality; null = "All"
+  const [selectedLocationId, setSelectedLocationId] = useState(profile.location_id ?? null);
+
+  // If they change their locality (Profile -> pencil), follow it
+  useEffect(() => {
+    setSelectedLocationId(profile.location_id ?? null);
+  }, [profile.location_id]);
+
+  // Counts requests so a slow, older response can never overwrite a newer one
+  // (e.g. tapping through chips quickly).
+  const latestRequest = useRef(0);
+
+  // Load the localities once, for the chips. If that fails the screen still
+  // works — just without chips.
+  useEffect(() => {
+    fetchLocations()
+      .then(setLocations)
+      .catch(() => {});
   }, []);
 
-  // Runs each time this tab becomes the active one
+  // On failure the previous list (if any) stays on screen.
+  const loadEvents = useCallback(async () => {
+    const requestId = ++latestRequest.current;
+    try {
+      setError(null);
+      const data = await fetchUpcomingEvents({ locationId: selectedLocationId });
+      if (requestId === latestRequest.current) setEvents(data);
+    } catch (e) {
+      if (requestId === latestRequest.current) setError(e.message || 'Unknown error');
+    } finally {
+      if (requestId === latestRequest.current) setLoading(false);
+    }
+  }, [selectedLocationId]);
+
+  // Runs each time the tab becomes active — and again whenever loadEvents
+  // changes, which is what happens when a different chip is selected.
   useFocusEffect(
     useCallback(() => {
       loadEvents();
@@ -118,6 +161,27 @@ export default function UpComingScreen() {
   const handleRetry = () => {
     setLoading(true);
     loadEvents();
+  };
+
+  const selectLocality = (id) => {
+    if (id === selectedLocationId) return;
+    setLoading(true);
+    setSelectedLocationId(id);
+  };
+
+  const selectedLocation = locations.find((location) => location.id === selectedLocationId);
+
+  const renderChip = (label, id) => {
+    const selected = id === selectedLocationId;
+    return (
+      <TouchableOpacity
+        key={label}
+        style={[styles.chip, selected && styles.chipSelected]}
+        onPress={() => selectLocality(id)}
+      >
+        <Text style={[styles.chipText, selected && styles.chipTextSelected]}>{label}</Text>
+      </TouchableOpacity>
+    );
   };
 
   const renderBody = () => {
@@ -154,8 +218,16 @@ export default function UpComingScreen() {
         ListEmptyComponent={
           <View style={styles.centered}>
             <Ionicons name="calendar-outline" size={44} color="#bbb" />
-            <Text style={styles.stateTitle}>No upcoming events</Text>
-            <Text style={styles.stateText}>Add one from the Discover tab.</Text>
+            <Text style={styles.stateTitle}>
+              {selectedLocation
+                ? `No upcoming events in ${selectedLocation.name}`
+                : 'No upcoming events'}
+            </Text>
+            <Text style={styles.stateText}>
+              {selectedLocation
+                ? 'Try another locality, or add one from the Discover tab.'
+                : 'Add one from the Discover tab.'}
+            </Text>
           </View>
         }
       />
@@ -164,10 +236,23 @@ export default function UpComingScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Sibling ABOVE the list (not inside it), so it stays fixed while the cards scroll */}
+      {/* Header and chips are siblings ABOVE the list (not inside it), so
+          they stay fixed while the cards scroll */}
       <View style={styles.headerRow}>
         <Text style={styles.headerTitle}>Upcoming Events</Text>
       </View>
+
+      {locations.length > 0 && (
+        <ChipScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chipScroll}
+          contentContainerStyle={styles.chipRow}
+        >
+          {renderChip('All', null)}
+          {locations.map((location) => renderChip(location.name, location.id))}
+        </ChipScrollView>
+      )}
 
       {renderBody()}
     </View>
@@ -182,13 +267,44 @@ const styles = StyleSheet.create({
   headerRow: {
     paddingTop: 30,
     paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingBottom: 12,
   },
   headerTitle: {
     fontFamily: 'Poppins-Bold',
     fontSize: 18,
     color: '#05dd00',
   },
+
+  // ---- Locality chips ----
+  // flexGrow: 0 matters: a horizontal ScrollView otherwise stretches to fill
+  // the screen's height and squeezes the list out
+  chipScroll: {
+    flexGrow: 0,
+  },
+  chipRow: {
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    gap: 8,
+  },
+  chip: {
+    borderWidth: 1.5,
+    borderColor: '#05dd00',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  chipSelected: {
+    backgroundColor: '#05dd00',
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#05dd00',
+  },
+  chipTextSelected: {
+    color: '#ffffff',
+  },
+
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 100, // clearance so the last card isn't hidden behind the floating tab bar
@@ -266,6 +382,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#444',
     marginTop: 6,
+    textAlign: 'center',
   },
   stateText: {
     fontSize: 13,

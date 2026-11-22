@@ -1,10 +1,15 @@
 // =============================================================================
-// DiscoverScreen.jsx — the "Discover" tab. Now DYNAMIC: events are loaded
-// from Supabase, shown in a 2-column grid, and the "+" button in the header
-// opens a form (CreateEventModal) that saves a new event to the database.
+// DiscoverScreen.jsx — the "Discover" tab. DYNAMIC: every event comes from
+// Supabase and is shown in a 2-column grid. Tap a card to blur it and reveal
+// its title, category, date and locality, plus two buttons:
+//   bookmark  = Save it   (shows up in Profile -> My Saved Gimik)
+//   checkmark = Join it   (counts toward "Trending" and your Events number)
+// The "+" button in the header opens a form (CreateEventModal) that saves a
+// new event to the database as the logged-in person.
 //
-// Flow:  mount -> fetchEvents() -> grid  |  "+" -> form -> createEvent()
-//        -> onCreated -> fetchEvents() again -> the new event appears.
+// Flow:  mount -> fetchEvents() + my saved/joined ids -> grid
+//        tap a button -> screen updates instantly -> database call (undone if it fails)
+//        "+" -> form -> createEvent() -> onCreated -> reload -> new event appears
 // =============================================================================
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -20,16 +25,27 @@ import {
 import { BlurView, BlurTargetView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import CreateEventModal from '../components/CreateEventModal.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import { fetchEvents } from '../services/events';
+import { fetchMyEventFlags, setJoined, setSaved } from '../services/account';
 import { formatDate } from '../utils/date';
+
+// A copy of a Set with `id` added (on = true) or removed (on = false).
+// (State must be replaced with a NEW Set, not changed in place, or React
+// wouldn't notice the change.)
+function withToggled(set, id, on) {
+  const copy = new Set(set);
+  if (on) copy.add(id);
+  else copy.delete(id);
+  return copy;
+}
 
 // -----------------------------------------------------------------------
 // EventCard — one grid cell. It's its own component only because each card
 // needs its own ref (blurTargetRef) for the Android blur, and hooks can't be
 // called inside a list's renderItem directly.
-// Tapping toggles `revealed`, which shows a blur layer with title + date.
 // -----------------------------------------------------------------------
-function EventCard({ event, revealed, onPress }) {
+function EventCard({ event, revealed, saved, joined, onPress, onToggleSaved, onToggleJoined }) {
   const blurTargetRef = useRef(null);
 
   return (
@@ -48,10 +64,32 @@ function EventCard({ event, revealed, onPress }) {
           style={styles.blurOverlay}
         >
           {event.category && <Text style={styles.cardTag}>{event.category.label}</Text>}
-          <Text style={styles.cardTitle} numberOfLines={3}>
+          <Text style={styles.cardTitle} numberOfLines={2}>
             {event.name}
           </Text>
           <Text style={styles.cardDate}>{formatDate(event.event_date)}</Text>
+          {event.location && <Text style={styles.cardLocation}>{event.location.name}</Text>}
+
+          <View style={styles.actionRow}>
+            <TouchableOpacity
+              style={[styles.actionButton, saved && styles.actionButtonOn]}
+              onPress={onToggleSaved}
+              accessibilityLabel={saved ? 'Unsave event' : 'Save event'}
+            >
+              <Ionicons name={saved ? 'bookmark' : 'bookmark-outline'} size={16} color="#ffffff" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, joined && styles.actionButtonOn]}
+              onPress={onToggleJoined}
+              accessibilityLabel={joined ? 'Leave event' : 'Join event'}
+            >
+              <Ionicons
+                name={joined ? 'checkmark-circle' : 'checkmark-circle-outline'}
+                size={16}
+                color="#ffffff"
+              />
+            </TouchableOpacity>
+          </View>
         </BlurView>
       )}
     </TouchableOpacity>
@@ -59,22 +97,31 @@ function EventCard({ event, revealed, onPress }) {
 }
 
 export default function DiscoverScreen() {
+  const { user } = useAuth();
+
   const [events, setEvents] = useState([]);
+  const [savedIds, setSavedIds] = useState(new Set()); // ids of events I saved
+  const [joinedIds, setJoinedIds] = useState(new Set()); // ids of events I joined
   const [loading, setLoading] = useState(true); // first load only
   const [refreshing, setRefreshing] = useState(false); // pull-to-refresh
   const [error, setError] = useState(null);
+  const [actionError, setActionError] = useState(''); // a save/join that didn't go through
   const [revealedId, setRevealedId] = useState(null); // which card is showing its blur (one at a time)
   const [formVisible, setFormVisible] = useState(false);
 
-  // Fetches the list; on failure keeps whatever was already on screen.
+  // Fetches the events and my saved/joined ids together; on failure keeps
+  // whatever was already on screen.
   const loadEvents = useCallback(async () => {
     try {
       setError(null);
-      setEvents(await fetchEvents());
+      const [list, flags] = await Promise.all([fetchEvents(), fetchMyEventFlags(user.id)]);
+      setEvents(list);
+      setSavedIds(flags.savedIds);
+      setJoinedIds(flags.joinedIds);
     } catch (e) {
       setError(e.message || 'Unknown error');
     }
-  }, []);
+  }, [user.id]);
 
   // Runs once when the screen first mounts
   useEffect(() => {
@@ -96,6 +143,21 @@ export default function DiscoverScreen() {
   const handleCreated = async () => {
     setFormVisible(false);
     await loadEvents();
+  };
+
+  // Save/unsave or join/leave one event. The button changes IMMEDIATELY (so
+  // the app feels instant); then the database is told. If the database says
+  // no (e.g. no internet), the change is undone and a message is shown.
+  const toggle = async (ids, setIds, saveToDatabase, eventId) => {
+    const turnOn = !ids.has(eventId);
+    setActionError('');
+    setIds((prev) => withToggled(prev, eventId, turnOn));
+    try {
+      await saveToDatabase(user.id, eventId, turnOn);
+    } catch (e) {
+      setIds((prev) => withToggled(prev, eventId, !turnOn));
+      setActionError(e.message || 'Something went wrong. Please try again.');
+    }
   };
 
   const renderBody = () => {
@@ -131,13 +193,17 @@ export default function DiscoverScreen() {
         showsVerticalScrollIndicator={false}
         refreshing={refreshing}
         onRefresh={handleRefresh}
-        extraData={revealedId} // makes the list re-render when a card is tapped
+        extraData={{ revealedId, savedIds, joinedIds }} // re-render the list when any of these change
         renderItem={({ item }) => (
           <EventCard
             event={item}
             revealed={revealedId === item.id}
+            saved={savedIds.has(item.id)}
+            joined={joinedIds.has(item.id)}
             // tap again on the open card to close it; tap another to switch
             onPress={() => setRevealedId((prev) => (prev === item.id ? null : item.id))}
+            onToggleSaved={() => toggle(savedIds, setSavedIds, setSaved, item.id)}
+            onToggleJoined={() => toggle(joinedIds, setJoinedIds, setJoined, item.id)}
           />
         )}
         ListEmptyComponent={
@@ -165,6 +231,8 @@ export default function DiscoverScreen() {
           <Ionicons name="add" size={24} color="#ffffff" />
         </TouchableOpacity>
       </View>
+
+      {actionError ? <Text style={styles.actionError}>{actionError}</Text> : null}
 
       {renderBody()}
 
@@ -205,6 +273,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#05dd00',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  actionError: {
+    color: '#d33',
+    fontSize: 13,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
   },
 
   listContent: {
@@ -259,6 +333,30 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 4,
     textAlign: 'center',
+  },
+  cardLocation: {
+    color: '#dddddd',
+    fontSize: 11,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+
+  // The save / join buttons under the text. They turn green once switched on.
+  actionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 8,
+  },
+  actionButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionButtonOn: {
+    backgroundColor: '#05dd00',
   },
 
   // Loading / error / empty states
