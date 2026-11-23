@@ -18,6 +18,7 @@ import {
   Modal,
   PanResponder,
   Platform,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -29,6 +30,10 @@ import { Ionicons } from '@expo/vector-icons';
 export default function BottomSheet({ visible, title, onClose, children }) {
   const translateY = useRef(new Animated.Value(0)).current;
 
+  // How far the inner ScrollView is scrolled. Used to decide whether a
+  // downward drag should move the sheet or scroll the content back up.
+  const scrollOffset = useRef(0);
+
   // Keep the latest onClose reachable from the PanResponder, which is created
   // only once and would otherwise capture a stale callback.
   const onCloseRef = useRef(onClose);
@@ -38,7 +43,10 @@ export default function BottomSheet({ visible, title, onClose, children }) {
 
   // Every time the sheet opens, make sure it starts fully in place.
   useEffect(() => {
-    if (visible) translateY.setValue(0);
+    if (visible) {
+      translateY.setValue(0);
+      scrollOffset.current = 0;
+    }
   }, [visible, translateY]);
 
   const closeWithSlide = () => {
@@ -54,15 +62,23 @@ export default function BottomSheet({ visible, title, onClose, children }) {
 
   const panResponder = useRef(
     PanResponder.create({
-      // Only claim the gesture once the finger is clearly moving downward, so
-      // taps on the close button still work.
+      // Capture phase: a downward drag anywhere on the sheet dismisses it —
+      // but only while the content is at the top, so normal scrolling (up, or
+      // down through already-scrolled content) keeps working.
+      onMoveShouldSetPanResponderCapture: (_, gesture) =>
+        scrollOffset.current <= 0 &&
+        gesture.dy > 10 &&
+        Math.abs(gesture.dy) > Math.abs(gesture.dx),
+      // Bubble phase: the header/handle is not scrollable, so dragging it down
+      // still dismisses even if the body happens to be scrolled.
       onMoveShouldSetPanResponder: (_, gesture) =>
-        gesture.dy > 8 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
+        gesture.dy > 10 && Math.abs(gesture.dy) > Math.abs(gesture.dx),
       onPanResponderMove: (_, gesture) => {
         if (gesture.dy > 0) translateY.setValue(gesture.dy);
       },
       onPanResponderRelease: (_, gesture) => {
-        if (gesture.dy > 120 || gesture.vy > 1.2) {
+        // A short flick or a deliberate drag both dismiss the sheet.
+        if (gesture.dy > 80 || gesture.vy > 0.8) {
           closeWithSlide();
         } else {
           Animated.spring(translateY, {
@@ -87,20 +103,35 @@ export default function BottomSheet({ visible, title, onClose, children }) {
         style={styles.overlay}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Animated.View style={[styles.sheet, { transform: [{ translateY }] }]}>
-          {/* Drag handle + header: this is the swipe-to-dismiss area */}
-          <View {...panResponder.panHandlers}>
-            <View style={styles.handle} />
+        {/* Tapping the dim area outside the sheet also closes it */}
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          accessibilityLabel="Close"
+        />
 
-            <View style={styles.header}>
-              <Text style={styles.title}>{title}</Text>
-              <TouchableOpacity onPress={onClose} hitSlop={10}>
-                <Ionicons name="close" size={24} color="#555" />
-              </TouchableOpacity>
-            </View>
+        <Animated.View
+          style={[styles.sheet, { transform: [{ translateY }] }]}
+          {...panResponder.panHandlers}
+        >
+          {/* Visible drag handle */}
+          <View style={styles.handle} />
+
+          <View style={styles.header}>
+            <Text style={styles.title}>{title}</Text>
+            <TouchableOpacity onPress={onClose} hitSlop={10}>
+              <Ionicons name="close" size={24} color="#555" />
+            </TouchableOpacity>
           </View>
 
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <ScrollView
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            onScroll={(event) => {
+              scrollOffset.current = event.nativeEvent.contentOffset.y;
+            }}
+            scrollEventThrottle={16}
+          >
             {children}
           </ScrollView>
         </Animated.View>

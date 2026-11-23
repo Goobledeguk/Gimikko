@@ -297,9 +297,10 @@ const styles = StyleSheet.create({
   // the screen's height and squeezes the list out
   chipScroll: {
     flexGrow: 0,
-    height: 46, // fixed so the row can never be measured shorter than its chips
+    height: 50, // fixed so the row can never be measured shorter than its chips
   },
   chipRow: {
+    marginTop: 4,
     paddingHorizontal: 20,
     paddingBottom: 14,
     gap: 8,
@@ -348,7 +349,11 @@ const styles = StyleSheet.create({
     borderRadius: 16,
   },
   cardOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+  height: 220,
+  borderRadius: 12,
+  overflow: 'hidden',
+  position: 'relative',
     backgroundColor: 'rgba(0, 0, 0, 0.68)',
   },
   cardContent: {
