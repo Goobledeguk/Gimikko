@@ -176,16 +176,74 @@ export async function fetchRecommendedEvents(locationId, limit = 5) {
   return data;
 }
 
-// "What People Are Saying": the newest reviews that include a comment, each
-// with the reviewer's name and the event it was about (two JOINs).
+// "What People Are Saying": the newest reviews (comment optional), each with
+// the reviewer's name and the event it was about (two JOINs).
 export async function fetchLatestReviews(limit = 3) {
   const { data, error } = await supabase
     .from('event_reviews')
     .select('id, rating, comment, reviewer:profiles(display_name), event:events(name)')
-    .not('comment', 'is', null)
     .order('created_at', { ascending: false })
     .limit(limit);
 
   if (error) throw error;
   return data;
+}
+
+// ---------------------------------------------------------------------------
+// EVENT DETAILS — used by the popup that opens when a card or carousel image
+// is tapped. One event with its category, locality and rating numbers.
+// ---------------------------------------------------------------------------
+export async function fetchEventById(eventId) {
+  const { data, error } = await supabase
+    .from('events')
+    .select(EVENT_COLUMNS)
+    .eq('id', eventId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const { data: stats, error: statsError } = await supabase
+    .from('event_stats')
+    .select('avg_rating, review_count, join_count')
+    .eq('event_id', eventId)
+    .maybeSingle();
+
+  if (statsError) throw statsError;
+
+  return {
+    ...data,
+    avg_rating: Number(stats?.avg_rating ?? 0),
+    review_count: Number(stats?.review_count ?? 0),
+    join_count: Number(stats?.join_count ?? 0),
+  };
+}
+
+// Who is going — a small guest list for the event popup. Only the fields the
+// app shows (name + username) are selected.
+export async function fetchEventAttendees(eventId, limit = 20) {
+  const { data, error } = await supabase
+    .from('event_attendees')
+    .select('profile:profiles(id, display_name, username)')
+    .eq('event_id', eventId)
+    .limit(limit);
+
+  if (error) throw error;
+  return data.map((row) => row.profile).filter(Boolean);
+}
+
+// Writes a review (1-5 stars, optional comment). Re-reviewing the same event
+// updates the existing row instead of failing on the unique constraint.
+export async function createEventReview({ eventId, reviewerId, rating, comment }) {
+  const { error } = await supabase.from('event_reviews').upsert(
+    {
+      event_id: eventId,
+      reviewer_id: reviewerId,
+      rating,
+      comment: comment.trim() === '' ? null : comment.trim(),
+    },
+    { onConflict: 'event_id,reviewer_id' }
+  );
+
+  if (error) throw error;
 }

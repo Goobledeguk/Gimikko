@@ -280,8 +280,23 @@ drop policy if exists "users can leave events" on public.event_attendees;
 create policy "users can leave events"
   on public.event_attendees for delete to authenticated using (profile_id = auth.uid());
 
--- event_reviews has no write policies yet: reviews can only be added from the
--- dashboard until the app gets a "write a review" screen.
+-- Reviews: a logged-in person can write one as themselves, and can edit or
+-- remove only their own. The unique (event_id, reviewer_id) constraint keeps
+-- it to one review per person per event; the app updates instead of adding.
+drop policy if exists "users can write reviews" on public.event_reviews;
+create policy "users can write reviews"
+  on public.event_reviews for insert to authenticated
+  with check (reviewer_id = auth.uid());
+
+drop policy if exists "users can update their own reviews" on public.event_reviews;
+create policy "users can update their own reviews"
+  on public.event_reviews for update to authenticated
+  using (reviewer_id = auth.uid()) with check (reviewer_id = auth.uid());
+
+drop policy if exists "users can delete their own reviews" on public.event_reviews;
+create policy "users can delete their own reviews"
+  on public.event_reviews for delete to authenticated
+  using (reviewer_id = auth.uid());
 
 
 -- ---------------------------------------------------------------------------

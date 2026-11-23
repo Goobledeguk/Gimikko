@@ -12,7 +12,6 @@
 // =============================================================================
 import { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Image,
   RefreshControl,
   ScrollView,
@@ -24,6 +23,9 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ParallaxCarousel from '../components/Carousel-Parallax.jsx';
+import EventDetailsModal from '../components/EventDetailsModal.jsx';
+import ReviewModal from '../components/ReviewModal.jsx';
+import Skeleton from '../components/Skeleton.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { fetchLatestReviews, fetchRecommendedEvents, fetchTrendingEvents } from '../services/events';
 import { fetchMyStats } from '../services/account';
@@ -44,6 +46,21 @@ function Stars({ rating }) {
   );
 }
 
+// Shape of the Home page while the first load is in flight.
+function HomeSkeleton() {
+  return (
+    <View style={styles.skeletonWrap}>
+      <Skeleton width="55%" height={24} style={styles.skeletonWelcome} />
+      <Skeleton width="90%" height={120} radius={16} />
+      <Skeleton width="38%" height={18} style={styles.skeletonHeading} />
+      <Skeleton width="100%" height={258} radius={16} />
+      <Skeleton width="48%" height={18} style={styles.skeletonHeading} />
+      <Skeleton width="90%" height={88} radius={14} style={styles.skeletonComment} />
+      <Skeleton width="90%" height={88} radius={14} style={styles.skeletonComment} />
+    </View>
+  );
+}
+
 export function Home() {
   const { profile } = useAuth();
 
@@ -59,6 +76,10 @@ export function Home() {
   // header below can show a drop shadow only once there's actually
   // content sliding underneath it.
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // Popups: an event's details (from a carousel tap) and the review form.
+  const [detailEventId, setDetailEventId] = useState(null);
+  const [reviewVisible, setReviewVisible] = useState(false);
 
   const handleScroll = (event) => {
     const offsetY = event.nativeEvent.contentOffset.y;
@@ -121,7 +142,8 @@ export function Home() {
 
   // One carousel section: the title, then the carousel (or a short message if
   // there's nothing to show). With a single image it must not loop/autoplay.
-  const renderCarousel = (title, images) => (
+  // Each slide is tappable and opens that event's details.
+  const renderCarousel = (title, images, eventIds) => (
     <>
       <Text style={styles.subheading}>{title}</Text>
       {images.length > 0 ? (
@@ -129,6 +151,7 @@ export function Home() {
           images={images}
           loop={images.length > 1}
           autoplay={images.length > 1}
+          onPressItem={(index) => setDetailEventId(eventIds[index])}
         />
       ) : (
         <Text style={styles.emptyText}>No upcoming events yet.</Text>
@@ -138,7 +161,7 @@ export function Home() {
 
   const renderBody = () => {
     if (loading) {
-      return <ActivityIndicator size="large" color="#05dd00" style={styles.spinner} />;
+      return <HomeSkeleton />;
     }
 
     if (error && !stats) {
@@ -188,10 +211,20 @@ export function Home() {
           </View>
         </View>
 
-        {renderCarousel('Trending Gimik', trendingImages)}
+        {renderCarousel(
+          'Trending Gimik',
+          trendingImages,
+          trending.map((event) => event.event_id)
+        )}
 
         {/* Reviews */}
-        <Text style={styles.subheading}>What People Are Saying</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionHeaderTitle}>What People Are Saying</Text>
+          <TouchableOpacity style={styles.reviewButton} onPress={() => setReviewVisible(true)}>
+            <Ionicons name="create-outline" size={14} color="#ffffff" />
+            
+          </TouchableOpacity>
+        </View>
         {reviews.length === 0 ? (
           <Text style={styles.emptyText}>No reviews yet.</Text>
         ) : (
@@ -204,13 +237,19 @@ export function Home() {
                   <Stars rating={review.rating} />
                 </View>
               </View>
-              <Text style={styles.commentText}>{review.comment}</Text>
+              {review.comment ? (
+                <Text style={styles.commentText}>{review.comment}</Text>
+              ) : null}
               {review.event && <Text style={styles.commentEvent}>on {review.event.name}</Text>}
             </View>
           ))
         )}
 
-        {renderCarousel('Recommended Gimik', recommendedImages)}
+        {renderCarousel(
+          'Recommended Gimik',
+          recommendedImages,
+          recommended.map((event) => event.id)
+        )}
       </>
     );
   };
@@ -236,6 +275,22 @@ export function Home() {
       >
         {renderBody()}
       </ScrollView>
+
+      <EventDetailsModal
+        eventId={detailEventId}
+        visible={detailEventId !== null}
+        onClose={() => setDetailEventId(null)}
+        onChanged={loadData}
+      />
+
+      <ReviewModal
+        visible={reviewVisible}
+        onClose={() => setReviewVisible(false)}
+        onSubmitted={() => {
+          setReviewVisible(false);
+          loadData();
+        }}
+      />
     </View>
   );
 }
@@ -302,10 +357,57 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  // ---- Loading / error / empty ----
-  spinner: {
-    marginTop: 60,
+  // Section title + its action button ("Write Review")
+  sectionHeader: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingLeft: 20,
+    paddingRight: 20,
+    marginTop: 10,
+    marginBottom: 10,
   },
+  sectionHeaderTitle: {
+    fontFamily: 'Poppins-Bold',
+    fontSize: 15,
+    color: '#05dd00',
+  },
+  reviewButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#05dd00',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  reviewButtonText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  // ---- Skeleton ----
+  skeletonWrap: {
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  skeletonWelcome: {
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  skeletonHeading: {
+    alignSelf: 'flex-start',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  skeletonComment: {
+    marginBottom: 12,
+  },
+
+  // ---- Loading / error / empty ----
   emptyText: {
     width: '100%',
     paddingLeft: 20,

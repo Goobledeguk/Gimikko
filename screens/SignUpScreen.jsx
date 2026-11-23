@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: 'Poppins-Bold',
     fontSize: 22,
-    color: '#222',
+    color: '#05dd00',
   },
   switchRow: {
     marginTop: 22,

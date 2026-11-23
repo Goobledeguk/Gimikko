@@ -1,7 +1,8 @@
 // =============================================================================
 // DiscoverScreen.jsx — the "Discover" tab. DYNAMIC: every event comes from
-// Supabase and is shown in a 2-column grid. Tap a card to blur it and reveal
-// its title, category, date and locality, plus two buttons:
+// Supabase and is shown in a 2-column grid. Tap a card to reveal its title,
+// category, date and locality behind a dark semi-transparent overlay, plus
+// two buttons:
 //   bookmark  = Save it   (shows up in Profile -> My Saved Gimik)
 //   checkmark = Join it   (counts toward "Trending" and your Events number)
 // The "+" button in the header opens a form (CreateEventModal) that saves a
@@ -11,9 +12,8 @@
 //        tap a button -> screen updates instantly -> database call (undone if it fails)
 //        "+" -> form -> createEvent() -> onCreated -> reload -> new event appears
 // =============================================================================
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   StyleSheet,
@@ -21,10 +21,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-// BlurTargetView is how expo-blur (SDK 55+) knows WHAT to blur on Android.
-import { BlurView, BlurTargetView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
 import CreateEventModal from '../components/CreateEventModal.jsx';
+import Skeleton from '../components/Skeleton.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { fetchEvents } from '../services/events';
 import { fetchMyEventFlags, setJoined, setSaved } from '../services/account';
@@ -41,28 +40,17 @@ function withToggled(set, id, on) {
 }
 
 // -----------------------------------------------------------------------
-// EventCard — one grid cell. It's its own component only because each card
-// needs its own ref (blurTargetRef) for the Android blur, and hooks can't be
-// called inside a list's renderItem directly.
+// EventCard — one grid cell. Its own component so render logic is cleanly
+// separated from the FlatList's renderItem callback.
 // -----------------------------------------------------------------------
 function EventCard({ event, revealed, saved, joined, onPress, onToggleSaved, onToggleJoined }) {
-  const blurTargetRef = useRef(null);
-
   return (
     <TouchableOpacity style={styles.card} activeOpacity={0.9} onPress={onPress}>
-      {/* The thing being blurred must live inside a BlurTargetView */}
-      <BlurTargetView ref={blurTargetRef} style={StyleSheet.absoluteFill}>
-        <Image source={{ uri: event.image_url }} style={styles.cardImage} />
-      </BlurTargetView>
+      {/* Always render the image underneath */}
+      <Image source={{ uri: event.image_url }} style={[styles.cardImage, StyleSheet.absoluteFill]} />
 
       {revealed && (
-        <BlurView
-          blurTarget={blurTargetRef}
-          blurMethod="dimezisBlurView" // real blur on Android (default is just a tint)
-          intensity={60}
-          tint="dark"
-          style={styles.blurOverlay}
-        >
+        <View style={styles.cardOverlay}>
           {event.category && <Text style={styles.cardTag}>{event.category.label}</Text>}
           <Text style={styles.cardTitle} numberOfLines={2}>
             {event.name}
@@ -90,7 +78,7 @@ function EventCard({ event, revealed, saved, joined, onPress, onToggleSaved, onT
               />
             </TouchableOpacity>
           </View>
-        </BlurView>
+        </View>
       )}
     </TouchableOpacity>
   );
@@ -106,7 +94,7 @@ export default function DiscoverScreen() {
   const [refreshing, setRefreshing] = useState(false); // pull-to-refresh
   const [error, setError] = useState(null);
   const [actionError, setActionError] = useState(''); // a save/join that didn't go through
-  const [revealedId, setRevealedId] = useState(null); // which card is showing its blur (one at a time)
+  const [revealedId, setRevealedId] = useState(null); // which card is showing its details (one at a time)
   const [formVisible, setFormVisible] = useState(false);
 
   // Fetches the events and my saved/joined ids together; on failure keeps
@@ -163,8 +151,10 @@ export default function DiscoverScreen() {
   const renderBody = () => {
     if (loading) {
       return (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#05dd00" />
+        <View style={styles.skeletonGrid}>
+          {[0, 1, 2, 3, 4, 5].map((key) => (
+            <Skeleton key={key} width="48%" height={150} radius={16} style={styles.skeletonTile} />
+          ))}
         </View>
       );
     }
@@ -286,6 +276,17 @@ const styles = StyleSheet.create({
     paddingBottom: 100, // clearance for the floating tab bar
     flexGrow: 1,
   },
+
+  // Skeleton grid shown while the first events load
+  skeletonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+  },
+  skeletonTile: {
+    marginBottom: 12,
+  },
   // Two cards per row; space-between keeps a lone last card at 48% width
   row: {
     justifyContent: 'space-between',
@@ -295,7 +296,7 @@ const styles = StyleSheet.create({
     width: '48%',
     height: 150,
     borderRadius: 16,
-    overflow: 'hidden', // clips the image + blur to the rounded corners
+    overflow: 'hidden', // clips the image + overlay to the rounded corners
     backgroundColor: '#f0f0f0',
     marginBottom: 12,
     elevation: 2,
@@ -309,11 +310,13 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
-  blurOverlay: {
+  // Solid dark layer so the white text stays readable on any photo.
+  cardOverlay: {
     ...StyleSheet.absoluteFillObject,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
   },
   cardTag: {
     color: '#05dd00',

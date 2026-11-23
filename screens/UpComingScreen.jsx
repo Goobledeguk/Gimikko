@@ -15,7 +15,6 @@
 // =============================================================================
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   ImageBackground,
   StyleSheet,
@@ -29,6 +28,8 @@ import {
 import { ScrollView as ChipScrollView } from 'react-native-gesture-handler';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import EventDetailsModal from '../components/EventDetailsModal.jsx';
+import Skeleton from '../components/Skeleton.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { fetchLocations, fetchUpcomingEvents } from '../services/events';
 import { formatDate } from '../utils/date';
@@ -69,35 +70,37 @@ function StarRating({ rating, count }) {
 // EventCard — one event: photo background, a dark overlay so the white
 // text stays readable on any photo, then tag / name / date / stars on top.
 // -----------------------------------------------------------------------
-function EventCard({ event }) {
+function EventCard({ event, onPress }) {
   // "Oct 12, 2026  •  Calbayog City" — on one line so the card keeps its height
   const dateLine = [formatDate(event.event_date), event.location?.name]
     .filter(Boolean)
     .join('  •  ');
 
   return (
-    <ImageBackground
-      source={{ uri: event.image_url }}
-      style={styles.card}
-      imageStyle={styles.cardImage}
-    >
-      <View style={styles.cardOverlay} />
-      <View style={styles.cardContent}>
-        {/* Events made through the form have no category yet, so the tag is optional */}
-        {event.category && (
-          <View style={styles.typeTag}>
-            <Text style={styles.typeTagText}>{event.category.label}</Text>
-          </View>
-        )}
-        <Text style={styles.eventName} numberOfLines={1}>
-          {event.name}
-        </Text>
-        <Text style={styles.eventDate} numberOfLines={1}>
-          {dateLine}
-        </Text>
-        <StarRating rating={event.avg_rating} count={event.review_count} />
-      </View>
-    </ImageBackground>
+    <TouchableOpacity style={styles.cardWrap} activeOpacity={0.9} onPress={onPress}>
+      <ImageBackground
+        source={{ uri: event.image_url }}
+        style={styles.card}
+        imageStyle={styles.cardImage}
+      >
+        <View style={styles.cardOverlay} />
+        <View style={styles.cardContent}>
+          {/* Events made through the form have no category yet, so the tag is optional */}
+          {event.category && (
+            <View style={styles.typeTag}>
+              <Text style={styles.typeTagText}>{event.category.label}</Text>
+            </View>
+          )}
+          <Text style={styles.eventName} numberOfLines={1}>
+            {event.name}
+          </Text>
+          <Text style={styles.eventDate} numberOfLines={1}>
+            {dateLine}
+          </Text>
+          <StarRating rating={event.avg_rating} count={event.review_count} />
+        </View>
+      </ImageBackground>
+    </TouchableOpacity>
   );
 }
 
@@ -112,6 +115,9 @@ export default function UpComingScreen() {
   const [locations, setLocations] = useState([]);
   // Starts on the person's own locality; null = "All"
   const [selectedLocationId, setSelectedLocationId] = useState(profile.location_id ?? null);
+
+  // Which event's detail popup is open (null = closed)
+  const [detailEventId, setDetailEventId] = useState(null);
 
   // If they change their locality (Profile -> pencil), follow it
   useEffect(() => {
@@ -187,8 +193,10 @@ export default function UpComingScreen() {
   const renderBody = () => {
     if (loading) {
       return (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#05dd00" />
+        <View style={styles.skeletonList}>
+          {[0, 1, 2, 3].map((key) => (
+            <Skeleton key={key} width="100%" height={120} radius={16} style={styles.skeletonCard} />
+          ))}
         </View>
       );
     }
@@ -210,7 +218,9 @@ export default function UpComingScreen() {
       <FlatList
         data={events}
         keyExtractor={(event) => event.id}
-        renderItem={({ item }) => <EventCard event={item} />}
+        renderItem={({ item }) => (
+          <EventCard event={item} onPress={() => setDetailEventId(item.id)} />
+        )}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshing={refreshing}
@@ -255,6 +265,13 @@ export default function UpComingScreen() {
       )}
 
       {renderBody()}
+
+      <EventDetailsModal
+        eventId={detailEventId}
+        visible={detailEventId !== null}
+        onClose={() => setDetailEventId(null)}
+        onChanged={loadEvents}
+      />
     </View>
   );
 }
@@ -280,11 +297,13 @@ const styles = StyleSheet.create({
   // the screen's height and squeezes the list out
   chipScroll: {
     flexGrow: 0,
+    height: 46, // fixed so the row can never be measured shorter than its chips
   },
   chipRow: {
     paddingHorizontal: 20,
     paddingBottom: 14,
     gap: 8,
+    alignItems: 'center', // keeps every chip (and its text) fully visible
   },
   chip: {
     borderWidth: 1.5,
@@ -292,6 +311,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 6,
+    minHeight: 32,
+    justifyContent: 'center',
   },
   chipSelected: {
     backgroundColor: '#05dd00',
@@ -300,6 +321,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#05dd00',
+    lineHeight: 17, // avoids clipped/half-height text on Android
   },
   chipTextSelected: {
     color: '#ffffff',
@@ -312,11 +334,13 @@ const styles = StyleSheet.create({
   },
 
   // ---- Event card ----
+  cardWrap: {
+    marginBottom: 16,
+  },
   card: {
     height: 120,
     borderRadius: 16,
     overflow: 'hidden',
-    marginBottom: 16,
     justifyContent: 'flex-end',
     backgroundColor: '#e8e8e8', // shows while the photo is still loading
   },
@@ -366,6 +390,14 @@ const styles = StyleSheet.create({
     color: '#dddddd',
     fontSize: 11,
     marginLeft: 6,
+  },
+
+  // ---- Skeleton ----
+  skeletonList: {
+    paddingHorizontal: 20,
+  },
+  skeletonCard: {
+    marginBottom: 16,
   },
 
   // ---- Loading / error / empty states ----

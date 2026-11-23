@@ -50,10 +50,8 @@ export default function LoginScreen({ onSwitch }) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <Image source={require('../assets/gimikko.png')} style={styles.logo} resizeMode="contain" />
-        <Text style={styles.tagline}>Anong Gimik Mo!</Text>
+        <Image source={require('../assets/gimikko-1.png')} style={styles.logo} resizeMode="contain" />
 
-        <Text style={styles.title}>Log in</Text>
 
         <Text style={form.label}>Email</Text>
         <TextInput
@@ -110,8 +108,8 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   logo: {
-    width: 160,
-    height: 60,
+    width: 180,
+    height: 100,
     alignSelf: 'center',
   },
   tagline: {

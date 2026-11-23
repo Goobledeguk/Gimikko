@@ -104,7 +104,7 @@ to confirm" and you'll have to confirm before logging in.
 ### Step 5 — Install the packages
 From the project folder (safe to run even if some are already installed):
 ```
-npx expo install @supabase/supabase-js react-native-url-polyfill @react-native-async-storage/async-storage base64-arraybuffer expo-image-picker expo-blur
+npx expo install @supabase/supabase-js react-native-url-polyfill @react-native-async-storage/async-storage base64-arraybuffer expo-image-picker
 ```
 All of these work in plain Expo Go — no custom build needed.
 
@@ -123,8 +123,8 @@ for the web preview, or scan the QR code with Expo Go on your phone.
    Your stats all read 0: it's a brand-new account.
 2. **Home** shows Trending, Recommended (events in *your* locality) and reviews,
    all from the database.
-3. **Discover** → tap a card → it blurs and shows the details. Tap the
-   **bookmark** (save) and the **checkmark** (join).
+3. **Discover** → tap a card → it shows its details over a dark overlay. Tap
+   the **bookmark** (save) and the **checkmark** (join).
 4. Go back to **Home** and **Profile**: Favorites / Saved / Events / Joined
    went up, and the event appears under *My Saved Gimik*.
 5. **Discover → +** → add an event (name, date, locality, photo). It appears in
@@ -180,7 +180,6 @@ App.js
 | Empty Discover / Home | You didn't run `seed.sql`, or no events exist yet — add one with **+**. |
 | "Couldn't load your profile" screen | The account exists but has no profile row (created before the trigger existed). Log out and sign up again, or insert the row in Table Editor. |
 | New event says "new row violates row-level security" | You're logged out, or `schema.sql` wasn't re-run after updating. |
-| Blur doesn't work on Android | Needs Expo SDK 55 or newer (uses `BlurTargetView`). |
 | Edited `.env` but nothing changed | Restart with `npx expo start -c`. |
 
 ---
@@ -191,8 +190,11 @@ App.js
   accounts** — they exist only so the sample reviews and join counts have
   names. Create your own account to log in.
 - **Rating** on Home = the average stars on events *you* posted. It shows "–"
-  until someone reviews one. There's no "write a review" screen yet, so
-  reviews can only be added in the Table Editor (`event_reviews`).
+  until someone reviews one.
+- **Write a Review** (Home → "What People Are Saying") lets you pick an event,
+  tap 1-5 stars and leave a comment. Re-reviewing the same event updates your
+  existing review. Make sure you re-ran `schema.sql` so the review policies are
+  in place.
 - New localities: add a row to the `locations` table in the dashboard. It shows
   up in the sign-up, edit and new-event pickers and the Calendar chips the next
   time the app is opened.

@@ -4,14 +4,13 @@
 // Home.jsx for the "Trending Gimik" and "Recommended Gimik" sections, each
 // with its own `images` array passed in as a prop.
 //
-// Wraps `react-native-reanimated-carousel` v5 — note that library uses a
-// NAMED export (`{ Carousel }`), not a default export, and its sizing is
-// controlled via `style={{ width, height }}` rather than separate width/
-// height props, both specific quirks of v5 vs. earlier versions.
+// Wraps `react-native-reanimated-carousel` v4 — the library uses a DEFAULT
+// export (not named), and parallax is configured via `layout="parallax"` with
+// `parallaxScrollingScale` / `parallaxScrollingOffset` as top-level props.
 // =============================================================================
 import * as React from "react";
-import { Image, StyleSheet, View, useWindowDimensions } from "react-native";
-import { Carousel } from "react-native-reanimated-carousel";
+import { Image, StyleSheet, TouchableOpacity, View, useWindowDimensions } from "react-native";
+import Carousel from "react-native-reanimated-carousel";
 
 export default function ParallaxCarousel({
   images = [require("../assets/gimikko.png")], // the photos to show, in order
@@ -24,6 +23,7 @@ export default function ParallaxCarousel({
   offset = 50,          // how far the side images shift away from center, in px
   rounded = true,        // rounded corners on each image
   onSnapToItem,          // optional callback fired when the centered image changes
+  onPressItem,           // optional callback fired with the image's index when tapped
 }) {
   // Measuring the real window width ourselves (rather than relying on a
   // fixed number) means this carousel sizes correctly on any device,
@@ -40,25 +40,41 @@ export default function ParallaxCarousel({
   return (
     <View style={styles.container}>
       <Carousel
-        style={{ width: carouselWidth, height }}
+        width={carouselWidth}
+        height={height}
         data={images}
         loop={loop}
         autoplay={autoplay}
         autoplayInterval={autoplayInterval}
         onSnapToItem={onSnapToItem}
-        // The parallax effect itself — `type: "parallax"` is what gives
-        // side images the scaled/offset depth look, tuned by scale/offset above.
-        layout={{ type: "parallax", offset, scale }}
+        // v4 API: width/height are direct props, layout is a plain string,
+        // parallax tuning uses parallaxScrollingScale / parallaxScrollingOffset.
+        layout="parallax"
+        parallaxScrollingScale={scale}
+        parallaxScrollingOffset={offset}
         // How each individual image is rendered inside the carousel
-        renderItem={({ item }) => (
-          <View style={styles.slide}>
+        renderItem={({ item, index }) => {
+          const content = (
             <Image
               source={item}
               style={[styles.image, rounded && styles.rounded]}
               resizeMode="cover"
             />
-          </View>
-        )}
+          );
+
+          // Without a handler each image stays a plain, non-interactive view.
+          if (!onPressItem) return <View style={styles.slide}>{content}</View>;
+
+          return (
+            <TouchableOpacity
+              style={styles.slide}
+              activeOpacity={0.9}
+              onPress={() => onPressItem(index)}
+            >
+              {content}
+            </TouchableOpacity>
+          );
+        }}
       />
     </View>
   );

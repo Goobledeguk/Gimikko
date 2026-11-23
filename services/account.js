@@ -153,3 +153,27 @@ async function setLink(table, userId, eventId, on) {
 
 export const setSaved = (userId, eventId, on) => setLink('saved_events', userId, eventId, on);
 export const setJoined = (userId, eventId, on) => setLink('event_attendees', userId, eventId, on);
+
+// The saved/joined state for ONE event — used by the event popup, so it
+// doesn't have to download every id just to check one.
+export async function fetchMyFlagsForEvent(userId, eventId) {
+  const [saved, joined] = await Promise.all([
+    supabase
+      .from('saved_events')
+      .select('event_id')
+      .eq('profile_id', userId)
+      .eq('event_id', eventId)
+      .maybeSingle(),
+    supabase
+      .from('event_attendees')
+      .select('event_id')
+      .eq('profile_id', userId)
+      .eq('event_id', eventId)
+      .maybeSingle(),
+  ]);
+
+  if (saved.error) throw saved.error;
+  if (joined.error) throw joined.error;
+
+  return { saved: Boolean(saved.data), joined: Boolean(joined.data) };
+}

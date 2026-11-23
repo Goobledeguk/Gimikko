@@ -121,9 +121,9 @@ Unchanged in structure since the last pass — fixed "Upcoming Events"
 header above 5 hardcoded event cards.
 
 ### DiscoverScreen.jsx
-2-column grid, 6 hardcoded cards, each with its own `useState` boolean.
-Tapping a card is meant to blur its photo via `expo-blur`'s `<BlurView>`
-and reveal title/date on top.
+2-column grid of events from the database. Tapping a card shows a solid dark
+overlay with its title, category, date and locality, plus
+the save and join buttons.
 
 ### ProfileScreen.jsx — rebuilt
 - The old full-width "Edit Profile" button at the bottom is gone, replaced
@@ -161,8 +161,9 @@ Changes here only take effect in a native build (dev client/EAS) — **not**
 in plain Expo Go.
 
 ### `components/Carousel-Parallax.jsx`
-Wraps `react-native-reanimated-carousel` v5 (named export, `style`-based
-sizing, `layout={{ type: "parallax" }}` instead of older `mode`/`modeConfig`).
+Wraps `react-native-reanimated-carousel` v4 (default export, `layout="parallax"`).
+Passing `onPressItem` makes every slide tappable (Home uses it to open the
+event details popup).
 
 ### `navigation/RootTabs.jsx`
 The only file that needs editing to add/remove/reorder tabs.
@@ -179,13 +180,13 @@ Reanimated whenever it becomes the active tab.
 ### `screens/Home.jsx`
 See "What Changed" above for the full rundown.
 
-### `screens/UpComing.jsx`
-Fixed header (same "render outside the ScrollView" trick as Home) above 5
-individually typed event cards.
+### `screens/UpComingScreen.jsx`
+Fixed header + locality chips above the event list. Cards come from the
+database and open the event details popup when tapped.
 
 ### `screens/DiscoverScreen.jsx`
-2-column grid (`flexWrap: 'wrap'`, `width: '48%'` per card). Each card has
-its own `useState` toggle and its own `<BlurView>` overlay.
+2-column grid (`flexWrap: 'wrap'`, `width: '48%'` per card). Tapping a card
+toggles a solid dark details overlay (one card at a time).
 
 ### `screens/FavoritesScreen.jsx`
 Minimal placeholder — currently what's actually wired into the

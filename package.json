@@ -10,7 +10,6 @@
     "@supabase/supabase-js": "^2.119.2",
     "base64-arraybuffer": "^1.0.2",
     "expo": "~57.0.24",
-    "expo-blur": "~57.0.3",
     "expo-font": "~57.0.4",
     "expo-image-picker": "~57.0.21",
     "expo-navigation-bar": "~57.0.3",
